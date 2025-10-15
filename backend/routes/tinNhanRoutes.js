@@ -1,13 +1,22 @@
 import express from "express";
 import { verifyToken } from "../middleware/verifyToken.js";
-import { guiTinNhan, getTinNhan } from "../controllers/tinNhanController.js";
+import { isAdmin } from "../middleware/roleCheck.js";
+import {
+  guiTinNhan,
+  getHoiThoai,
+  getAllTinNhan,
+  danhDauDaDoc,
+  deleteTinNhan,
+  getThongKeTinNhan,
+} from "../controllers/tinNhanController.js";
 
 const router = express.Router();
 
-// 📘 Gửi tin nhắn giữa các người dùng
 router.post("/", verifyToken, guiTinNhan);
-
-// 📘 Lấy lịch sử hội thoại giữa 2 người
-router.get("/:nguoi_nhan", verifyToken, getTinNhan);
+router.get("/", verifyToken, isAdmin, getAllTinNhan);
+router.get("/thongke", verifyToken, getThongKeTinNhan);
+router.get("/:nguoi_nhan", verifyToken, getHoiThoai);
+router.put("/danhdau/:nguoi_nhan", verifyToken, danhDauDaDoc);
+router.delete("/:id_tin_nhan", verifyToken, isAdmin, deleteTinNhan);
 
 export default router;

@@ -5,7 +5,7 @@ import {
   getAllHocKy,
   createHocKy,
   updateHocKy,
-  deleteHocKy
+  deleteHocKy,
 } from "../controllers/hocKyController.js";
 
 const router = express.Router();

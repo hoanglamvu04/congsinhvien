@@ -1,0 +1,370 @@
+.admin-container {
+  display: flex;
+  height: 100vh;
+  font-family: "Segoe UI", sans-serif;
+}
+
+.admin-sidebar {
+  width: 240px;
+  background: #1e40af;
+  color: white;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 20px;
+  overflow-y: scroll;
+}
+
+.admin-sidebar .logo {
+  font-size: 1.4rem;
+  font-weight: bold;
+  margin-bottom: 20px;
+}
+
+.admin-sidebar nav a {
+  display: block;
+  color: #e5e7eb;
+  text-decoration: none;
+  padding: 10px 0;
+  transition: 0.2s;
+}
+
+.admin-sidebar nav a:hover {
+  color: white;
+  transform: translateX(4px);
+}
+
+.logout-btn {
+  background: #ef4444;
+  border: none;
+  color: white;
+  padding: 10px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.logout-btn:hover {
+  background: #dc2626;
+}
+
+.admin-main {
+  flex: 1;
+  background: #f9fafb;
+  padding: 30px;
+}
+
+.admin-dashboard h1 {
+  font-size: 2rem;
+  color: #1e3a8a;
+}
+
+.stats-grid {
+  margin-top: 25px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 20px;
+}
+
+.card {
+  background: white;
+  border-radius: 10px;
+  padding: 20px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  text-align: center;
+}
+.filter-bar {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.filter-bar input,
+.filter-bar select {
+  padding: 8px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+}
+
+.create-form {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 25px;
+}
+
+.create-form input,
+.create-form select {
+  padding: 8px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+}
+
+.create-form button {
+  background: #1e40af;
+  color: white;
+  border: none;
+  padding: 8px 15px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.table-container {
+  overflow-x: auto;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+}
+
+.data-table th,
+.data-table td {
+  border: 1px solid #ddd;
+  padding: 10px;
+  text-align: center;
+}
+
+.data-table th {
+  background: #f3f4f6;
+}
+.admin-container {
+  display: flex;
+  min-height: 100vh;
+}
+
+.admin-sidebar {
+  width: 220px;
+  background: #1e293b;
+  color: white;
+  padding: 20px;
+}
+
+.admin-sidebar h2 {
+  font-size: 18px;
+  margin-bottom: 20px;
+}
+
+.admin-sidebar ul {
+  list-style: none;
+  padding: 0;
+}
+
+.admin-sidebar li {
+  margin-bottom: 10px;
+}
+
+.admin-sidebar a {
+  color: white;
+  text-decoration: none;
+}
+
+.admin-content {
+  flex: 1;
+  background: #f9fafb;
+  padding: 20px;
+}
+/* ✅ Sidebar toggle */
+.admin-container {
+  display: flex;
+  min-height: 100vh;
+  transition: all 0.3s ease;
+}
+
+.admin-sidebar {
+  width: 240px;
+  background: #1e40af;
+  color: white;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 20px;
+  transition: width 0.3s ease;
+  overflow: hidden;
+}
+
+.admin-container.collapsed .admin-sidebar {
+  width: 70px;
+}
+
+.admin-container.collapsed .admin-sidebar h2,
+.admin-container.collapsed .admin-sidebar a {
+  display: none;
+}
+
+.sidebar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.toggle-btn {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 20px;
+  cursor: pointer;
+  margin-bottom: 10px;
+}
+
+.admin-main {
+  flex: 1;
+  background: #f9fafb;
+  padding: 30px;
+  transition: margin-left 0.3s ease;
+}
+
+/* Đảm bảo main không bị đẩy */
+.admin-container.collapsed .admin-main {
+  margin-left: 0;
+}
+
+/* ===== Sidebar toggle cố định, không đẩy nội dung ===== */
+.admin-container {
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+  font-family: "Segoe UI", sans-serif;
+}
+
+/* Sidebar cố định */
+.admin-sidebar {
+  width: 240px;
+  background: #1e40af;
+  color: white;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 20px;
+  transition: width 0.3s ease;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 10;
+  overflow-y: scroll;
+}
+
+.admin-container.collapsed .admin-sidebar {
+  width: 70px;
+}
+
+/* Logo và nút toggle */
+.sidebar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 25px;
+}
+
+.toggle-btn {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 22px;
+  cursor: pointer;
+  padding: 4px;
+}
+
+/* Ẩn text khi thu nhỏ */
+.admin-container.collapsed .admin-sidebar h2,
+.admin-container.collapsed .admin-sidebar nav a span {
+  display: none;
+}
+
+/* Giữ icon luôn giữa khi collapse */
+.admin-sidebar nav a {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #e5e7eb;
+  text-decoration: none;
+  padding: 10px 0;
+  transition: 0.2s;
+  white-space: nowrap;
+}
+.admin-sidebar nav a:hover {
+  color: #fff;
+  transform: translateX(4px);
+}
+
+/* Logout nút */
+.logout-btn {
+  background: #ef4444;
+  border: none;
+  color: white;
+  padding: 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: 0.2s;
+}
+.logout-btn:hover {
+  background: #dc2626;
+}
+
+/* Nội dung chính */
+.admin-main {
+  flex: 1;
+  background: #f9fafb;
+  padding: 30px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  transition: all 0.3s ease;
+}
+
+/* Khi collapse, giữ nguyên vị trí main */
+.admin-container.collapsed .admin-main {
+  margin-left: 0;
+}
+
+/* ====== Bảng và Form vẫn như cũ ====== */
+.filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.create-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 25px;
+}
+
+.create-form input,
+.create-form select {
+  padding: 8px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+}
+
+.create-form button {
+  background: #1e40af;
+  color: white;
+  border: none;
+  padding: 8px 15px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.table-container {
+  overflow-x: auto;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+}
+
+.data-table th,
+.data-table td {
+  border: 1px solid #ddd;
+  padding: 10px;
+  text-align: center;
+  font-size: 14px;
+}
+
+.data-table th {
+  background: #f3f4f6;
+}

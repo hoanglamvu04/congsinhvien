@@ -5,7 +5,7 @@ import {
   getAllLopHocPhan,
   createLopHocPhan,
   updateLopHocPhan,
-  deleteLopHocPhan
+  deleteLopHocPhan,
 } from "../controllers/lopHocPhanController.js";
 
 const router = express.Router();

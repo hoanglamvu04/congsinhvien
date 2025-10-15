@@ -63,7 +63,7 @@ app.use("/api/dangky", dangKyMonRoutes);
 app.use("/api/tkb", thoiKhoaBieuRoutes);
 app.use("/api/diem", diemRoutes);
 app.use("/api/thilai", thiLaiRoutes);
-app.use("/api/renluyen", diemRenLuyenRoutes)
+app.use("/api/diemrenluyen", diemRenLuyenRoutes)
 app.use("/api/hocphi", hocPhiRoutes);
 app.use("/api/giaodich", giaoDichRoutes);
 app.use("/api/hocbong", hocBongRoutes);
@@ -74,6 +74,6 @@ app.use("/api/phieutraloi", phieuTraLoiRoutes);
 app.use("/api/phanhoi", phanHoiRoutes);
 app.use("/api/tinnhan", tinNhanRoutes);
 app.use("/api/thongbao", thongBaoRoutes);
-app.use("/api/lichsu", lichSuHoatDongRoutes);
+app.use("/api/lichsuhoatdong", lichSuHoatDongRoutes);
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

@@ -5,7 +5,7 @@ import {
   getAllMonHoc,
   createMonHoc,
   updateMonHoc,
-  deleteMonHoc
+  deleteMonHoc,
 } from "../controllers/monHocController.js";
 
 const router = express.Router();

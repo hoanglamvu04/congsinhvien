@@ -1,12 +1,25 @@
 import express from "express";
 import { verifyToken } from "../middleware/verifyToken.js";
 import { isAdmin } from "../middleware/roleCheck.js";
-import { getGiaoDichBySinhVien, createGiaoDich, duyetGiaoDich } from "../controllers/giaoDichController.js";
+import {
+  getAllGiaoDich,
+  createGiaoDich,
+  updateTrangThaiGiaoDich,
+  deleteGiaoDich,
+} from "../controllers/giaoDichController.js";
 
 const router = express.Router();
 
-router.get("/", verifyToken, getGiaoDichBySinhVien);
+// 📘 Lấy danh sách giao dịch (admin/sinh viên)
+router.get("/", verifyToken, getAllGiaoDich);
+
+// ➕ Tạo giao dịch mới
 router.post("/", verifyToken, createGiaoDich);
-router.put("/duyet", verifyToken, isAdmin, duyetGiaoDich);
+
+// ✏️ Cập nhật trạng thái (Admin)
+router.put("/", verifyToken, isAdmin, updateTrangThaiGiaoDich);
+
+// 🗑️ Xóa giao dịch (Admin)
+router.delete("/:id_giao_dich", verifyToken, isAdmin, deleteGiaoDich);
 
 export default router;
