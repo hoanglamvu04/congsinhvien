@@ -1,9 +1,18 @@
 import pool from "../config/db.js";
 
 // 📘 Xem danh sách môn đã đăng ký
+// 📘 Xem danh sách môn đã đăng ký
 export const getMonDaDangKy = async (req, res) => {
   try {
-    const user = req.user;
+    const [svRows] = await pool.query(
+      "SELECT ma_sinh_vien FROM sinh_vien WHERE id_tai_khoan = ?",
+      [req.user.id]
+    );
+    if (!svRows.length)
+      return res.status(404).json({ error: "Không tìm thấy sinh viên." });
+
+    const ma_sinh_vien = svRows[0].ma_sinh_vien;
+
     const [rows] = await pool.query(
       `
       SELECT dk.*, mh.ten_mon, lhp.phong_hoc, hk.ten_hoc_ky, gv.ho_ten AS giang_vien
@@ -15,7 +24,7 @@ export const getMonDaDangKy = async (req, res) => {
       WHERE dk.ma_sinh_vien = ? AND dk.trang_thai = 'dangky'
       ORDER BY hk.ten_hoc_ky DESC
       `,
-      [user.ma_sinh_vien]
+      [ma_sinh_vien]
     );
     res.json({ data: rows });
   } catch (error) {

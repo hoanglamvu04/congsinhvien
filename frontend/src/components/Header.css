@@ -1,0 +1,67 @@
+/* src/components/Header.css */
+
+.header {
+  background-color: #004080;
+  color: white;
+  padding: 10px 30px;
+  display: flex;
+  justify-content: center;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
+
+.header__container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  max-width: 1200px;
+}
+
+.header__logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.logo-img {
+  width: 45px;
+  height: 45px;
+}
+
+.logo-text {
+  font-weight: bold;
+  font-size: 18px;
+  color: white;
+}
+
+.header__nav ul {
+  display: flex;
+  list-style: none;
+  gap: 20px;
+  margin: 0;
+}
+
+.header__nav a {
+  color: white;
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.3s;
+}
+
+.header__nav a:hover {
+  color: #ffcc00;
+}
+
+.login-btn {
+  background-color: #ffcc00;
+  color: #004080;
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: 0.3s;
+}
+
+.login-btn:hover {
+  background-color: #ffd633;
+}

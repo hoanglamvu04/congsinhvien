@@ -16,6 +16,32 @@ export const getAllSinhVien = async (req, res) => {
     res.status(500).json({ error: "Lỗi khi lấy danh sách sinh viên" });
   }
 };
+// 📘 Lấy thông tin sinh viên theo tài khoản đăng nhập
+export const getSinhVienByToken = async (req, res) => {
+  try {
+    const userId = req.user.id; // id_tai_khoan được gắn sẵn trong verifyToken
+    const [rows] = await pool.query(
+      `
+      SELECT sv.*, l.ten_lop, n.ten_nganh, k.ten_khoa
+      FROM sinh_vien sv
+      LEFT JOIN lop l ON sv.ma_lop = l.ma_lop
+      LEFT JOIN nganh n ON sv.ma_nganh = n.ma_nganh
+      LEFT JOIN khoa k ON sv.ma_khoa = k.ma_khoa
+      WHERE sv.id_tai_khoan = ?
+      `,
+      [userId]
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).json({ message: "Không tìm thấy thông tin sinh viên." });
+    }
+
+    res.json(rows[0]);
+  } catch (error) {
+    console.error("❌ Lỗi khi lấy thông tin sinh viên:", error);
+    res.status(500).json({ error: "Lỗi khi lấy thông tin sinh viên." });
+  }
+};
 
 // ➕ Thêm sinh viên (Admin)
 export const createSinhVien = async (req, res) => {

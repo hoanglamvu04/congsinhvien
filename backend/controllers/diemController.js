@@ -20,27 +20,42 @@ export const getAllDiem = async (req, res) => {
   }
 };
 
-// 📘 Lấy điểm theo sinh viên (cũ)
-export const getDiemBySinhVien = async (req, res) => {
+// 📘 Sinh viên xem điểm cá nhân (theo token)
+export const getMyDiem = async (req, res) => {
   try {
-    const user = req.user;
-    let ma_sv = user.ma_sinh_vien;
-    if (user.role !== "sinhvien" && req.query.ma_sinh_vien) {
-      ma_sv = req.query.ma_sinh_vien;
-    }
-    const [rows] = await pool.query(`
-      SELECT d.*, mh.ten_mon, lhp.ma_lop_hp
+    const userId = req.user.id; // lấy id_tai_khoan từ token
+    // Tìm mã sinh viên tương ứng
+    const [svRows] = await pool.query(
+      "SELECT ma_sinh_vien FROM sinh_vien WHERE id_tai_khoan = ?",
+      [userId]
+    );
+
+    if (svRows.length === 0)
+      return res.status(404).json({ message: "Không tìm thấy sinh viên." });
+
+    const ma_sinh_vien = svRows[0].ma_sinh_vien;
+
+    // Lấy điểm theo mã sinh viên
+    const [rows] = await pool.query(
+      `
+      SELECT d.*, mh.ten_mon, lhp.ma_lop_hp, hk.ten_hoc_ky
       FROM diem d
       JOIN lop_hoc_phan lhp ON d.ma_lop_hp = lhp.ma_lop_hp
       JOIN mon_hoc mh ON lhp.ma_mon = mh.ma_mon
+      JOIN hoc_ky hk ON lhp.ma_hoc_ky = hk.ma_hoc_ky
       WHERE d.ma_sinh_vien = ?
-    `, [ma_sv]);
-    res.json(rows);
+      ORDER BY hk.ten_hoc_ky DESC, mh.ten_mon ASC
+      `,
+      [ma_sinh_vien]
+    );
+
+    res.json({ data: rows });
   } catch (error) {
-    console.error(error);
+    console.error("❌ [getMyDiem]", error);
     res.status(500).json({ error: "Lỗi khi lấy điểm sinh viên" });
   }
 };
+
 
 // ➕ Thêm hoặc cập nhật điểm
 export const upsertDiem = async (req, res) => {

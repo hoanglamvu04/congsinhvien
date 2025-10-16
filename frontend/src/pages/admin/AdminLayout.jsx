@@ -31,6 +31,8 @@ const AdminLayout = () => {
             <li><Link to="/admin/monhoc">📘 Quản lý môn học</Link></li>
             <li><Link to="/admin/lophocphan">🏫 Quản lý lớp học phần</Link></li>
             <li><Link to="/admin/dangky">🧾 Quản lý đăng ký môn học</Link></li>
+            <li><Link to="/admin/thoi-khoa-bieu">📅 Quản lý thời khóa biểu</Link></li>
+
             <li><Link to="/admin/sinhvien">🎒 Sinh viên</Link></li>
             <li><Link to="/admin/diem">📊 Quản lý điểm</Link></li>
             <li><Link to="/admin/diemrenluyen">🎯 Quản lý điểm rèn luyện</Link></li>
@@ -44,8 +46,8 @@ const AdminLayout = () => {
             <li><Link to="/admin/phieutraloi">📋 Quản lý phiếu trả lời</Link></li>
             <li><Link to="/admin/phanhoi">💬 Quản lý phản hồi</Link></li>
             <li><Link to="/admin/tinnhan">💬 Quản lý tin nhắn</Link></li>
-<li><Link to="/admin/thongbao">📢 Quản lý thông báo</Link></li>
-<li><Link to="/admin/lichsuhoatdong">🧾 Lịch sử hoạt động</Link></li>
+            <li><Link to="/admin/thongbao">📢 Quản lý thông báo</Link></li>
+            <li><Link to="/admin/lichsuhoatdong">🧾 Lịch sử hoạt động</Link></li>
 
           </ul>
         </nav>

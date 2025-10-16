@@ -6,20 +6,15 @@ import {
   createHocPhi,
   updateHocPhi,
   deleteHocPhi,
+  getHocPhiBySinhVien,
 } from "../controllers/hocPhiController.js";
 
 const router = express.Router();
 
-// 📘 Lấy danh sách học phí (admin/sinh viên)
 router.get("/", verifyToken, getAllHocPhi);
-
-// ➕ Thêm học phí (Admin)
+router.get("/me", verifyToken, getHocPhiBySinhVien);
 router.post("/", verifyToken, isAdmin, createHocPhi);
-
-// ✏️ Cập nhật học phí (Admin)
 router.put("/:ma_sinh_vien/:ma_hoc_ky", verifyToken, isAdmin, updateHocPhi);
-
-// 🗑️ Xóa học phí (Admin)
 router.delete("/:ma_sinh_vien/:ma_hoc_ky", verifyToken, isAdmin, deleteHocPhi);
 
 export default router;

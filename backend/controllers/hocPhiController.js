@@ -41,6 +41,40 @@ export const getAllHocPhi = async (req, res) => {
     res.status(500).json({ error: "Lỗi khi lấy danh sách học phí" });
   }
 };
+// 📘 Sinh viên xem học phí của chính mình
+export const getHocPhiBySinhVien = async (req, res) => {
+  try {
+    const userId = req.user.id; // id_tai_khoan lấy từ token
+
+    // Lấy mã sinh viên
+    const [svRows] = await pool.query(
+      "SELECT ma_sinh_vien FROM sinh_vien WHERE id_tai_khoan = ?",
+      [userId]
+    );
+
+    if (svRows.length === 0)
+      return res.status(404).json({ message: "Không tìm thấy sinh viên." });
+
+    const ma_sinh_vien = svRows[0].ma_sinh_vien;
+
+    // Truy vấn danh sách học phí
+    const [rows] = await pool.query(
+      `
+      SELECT hp.*, hk.ten_hoc_ky
+      FROM hoc_phi hp
+      JOIN hoc_ky hk ON hp.ma_hoc_ky = hk.ma_hoc_ky
+      WHERE hp.ma_sinh_vien = ?
+      ORDER BY hk.ten_hoc_ky DESC
+      `,
+      [ma_sinh_vien]
+    );
+
+    res.json({ data: rows });
+  } catch (error) {
+    console.error("[getHocPhiBySinhVien]", error);
+    res.status(500).json({ error: "Lỗi khi lấy học phí của sinh viên" });
+  }
+};
 
 /**
  * ➕ Thêm học phí

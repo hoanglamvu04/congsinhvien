@@ -60,7 +60,7 @@ app.use("/api/hocky", hocKyRoutes);
 app.use("/api/lophocphan", lopHocPhanRoutes);
 app.use("/api/sinhvien", sinhVienRoutes);
 app.use("/api/dangky", dangKyMonRoutes);
-app.use("/api/tkb", thoiKhoaBieuRoutes);
+app.use("/api/thoi-khoa-bieu", thoiKhoaBieuRoutes);
 app.use("/api/diem", diemRoutes);
 app.use("/api/thilai", thiLaiRoutes);
 app.use("/api/diemrenluyen", diemRenLuyenRoutes)

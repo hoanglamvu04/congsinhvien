@@ -3,10 +3,33 @@ import pool from "../config/db.js";
 // 📩 Gửi tin nhắn
 export const guiTinNhan = async (req, res) => {
   try {
-    const { nguoi_gui, nguoi_nhan, noi_dung, tep_dinh_kem } = req.body;
+    const { nguoi_nhan, noi_dung, tep_dinh_kem } = req.body;
+    const user = req.user;
 
-    if (!nguoi_gui || !nguoi_nhan || !noi_dung)
-      return res.status(400).json({ error: "Thiếu người gửi, người nhận hoặc nội dung" });
+    // ✅ Lấy tên đăng nhập người gửi dựa vào role
+    let nguoi_gui = null;
+
+    if (user.ma_sinh_vien) {
+      const [tk] = await pool.query(
+        `SELECT ten_dang_nhap FROM tai_khoan 
+         WHERE id_tai_khoan = (SELECT id_tai_khoan FROM sinh_vien WHERE ma_sinh_vien = ?)`,
+        [user.ma_sinh_vien]
+      );
+      if (tk.length > 0) nguoi_gui = tk[0].ten_dang_nhap;
+    } else if (user.ma_giang_vien) {
+      const [tk] = await pool.query(
+        `SELECT ten_dang_nhap FROM tai_khoan 
+         WHERE id_tai_khoan = (SELECT id_tai_khoan FROM giang_vien WHERE ma_giang_vien = ?)`,
+        [user.ma_giang_vien]
+      );
+      if (tk.length > 0) nguoi_gui = tk[0].ten_dang_nhap;
+    }
+
+    if (!nguoi_gui || !nguoi_nhan || !noi_dung) {
+      return res
+        .status(400)
+        .json({ error: "Thiếu người gửi, người nhận hoặc nội dung" });
+    }
 
     await pool.query(
       `
@@ -24,11 +47,33 @@ export const guiTinNhan = async (req, res) => {
 };
 
 
-// 💬 Lấy hội thoại giữa 2 người (sinh viên ↔ giảng viên hoặc bất kỳ)
+
 export const getHoiThoai = async (req, res) => {
   try {
     const { nguoi_nhan } = req.params;
-    const nguoi_gui = req.user.ten_dang_nhap;
+    const user = req.user;
+    let nguoi_gui = null;
+
+    if (user.ma_sinh_vien) {
+      const [tk] = await pool.query(
+        `SELECT ten_dang_nhap FROM tai_khoan WHERE id_tai_khoan = (
+           SELECT id_tai_khoan FROM sinh_vien WHERE ma_sinh_vien = ?
+         )`,
+        [user.ma_sinh_vien]
+      );
+      if (tk.length > 0) nguoi_gui = tk[0].ten_dang_nhap;
+    } else if (user.ma_giang_vien) {
+      const [tk] = await pool.query(
+        `SELECT ten_dang_nhap FROM tai_khoan WHERE id_tai_khoan = (
+           SELECT id_tai_khoan FROM giang_vien WHERE ma_giang_vien = ?
+         )`,
+        [user.ma_giang_vien]
+      );
+      if (tk.length > 0) nguoi_gui = tk[0].ten_dang_nhap;
+    }
+
+    if (!nguoi_gui)
+      return res.status(400).json({ error: "Không xác định được người gửi" });
 
     const [rows] = await pool.query(
       `
@@ -50,6 +95,8 @@ export const getHoiThoai = async (req, res) => {
   }
 };
 
+
+
 // 🧾 Admin xem tất cả tin nhắn
 export const getAllTinNhan = async (req, res) => {
   try {
@@ -70,11 +117,63 @@ export const getAllTinNhan = async (req, res) => {
   }
 };
 
-// ✅ Đánh dấu tin nhắn đã đọc
+
+// 📬 Lấy toàn bộ tin nhắn của người dùng hiện tại (SV hoặc GV)
+export const getTinNhanCaNhan = async (req, res) => {
+  try {
+    const user = req.user;
+
+    // 🧩 Lấy tên đăng nhập thật từ bảng tai_khoan
+    let tenDangNhap = null;
+
+    if (user.ma_sinh_vien) {
+      const [tk] = await pool.query(
+        `SELECT ten_dang_nhap FROM tai_khoan WHERE ten_dang_nhap = ? OR id_tai_khoan = (
+           SELECT id_tai_khoan FROM sinh_vien WHERE ma_sinh_vien = ?
+         )`,
+        [user.ma_sinh_vien, user.ma_sinh_vien]
+      );
+      if (tk.length > 0) tenDangNhap = tk[0].ten_dang_nhap;
+    } else if (user.ma_giang_vien) {
+      const [tk] = await pool.query(
+        `SELECT ten_dang_nhap FROM tai_khoan WHERE ten_dang_nhap = ? OR id_tai_khoan = (
+           SELECT id_tai_khoan FROM giang_vien WHERE ma_giang_vien = ?
+         )`,
+        [user.ma_giang_vien, user.ma_giang_vien]
+      );
+      if (tk.length > 0) tenDangNhap = tk[0].ten_dang_nhap;
+    }
+
+    if (!tenDangNhap) return res.json({ data: [] });
+
+    // ✅ Truy vấn chính
+    const [rows] = await pool.query(
+      `
+      SELECT t.*, g.ten_dang_nhap AS nguoi_gui, n.ten_dang_nhap AS nguoi_nhan
+      FROM tin_nhan t
+      JOIN tai_khoan g ON t.nguoi_gui = g.ten_dang_nhap
+      JOIN tai_khoan n ON t.nguoi_nhan = n.ten_dang_nhap
+      WHERE t.nguoi_gui = ? OR t.nguoi_nhan = ?
+      ORDER BY t.thoi_gian_gui DESC
+      `,
+      [tenDangNhap, tenDangNhap]
+    );
+
+    res.json({ data: rows });
+  } catch (err) {
+    console.error("[getTinNhanCaNhan]", err);
+    res.status(500).json({ error: "Lỗi khi lấy tin nhắn cá nhân" });
+  }
+};
+
+
 export const danhDauDaDoc = async (req, res) => {
   try {
     const { nguoi_nhan } = req.params;
-    const nguoi_gui = req.user.ten_dang_nhap;
+    const user = req.user;
+    const nguoi_gui =
+      user.ma_sinh_vien || user.ma_giang_vien || user.ten_dang_nhap;
+
     await pool.query(
       `
       UPDATE tin_nhan 
@@ -83,12 +182,15 @@ export const danhDauDaDoc = async (req, res) => {
       `,
       [nguoi_nhan, nguoi_gui]
     );
+
     res.json({ message: "Đã đánh dấu tin nhắn là đã đọc" });
   } catch (err) {
     console.error("[danhDauDaDoc]", err);
     res.status(500).json({ error: "Lỗi khi cập nhật trạng thái tin nhắn" });
   }
 };
+
+
 
 // 🗑️ Xóa tin nhắn (Admin)
 export const deleteTinNhan = async (req, res) => {
@@ -101,6 +203,7 @@ export const deleteTinNhan = async (req, res) => {
     res.status(500).json({ error: "Lỗi khi xóa tin nhắn" });
   }
 };
+
 
 // 📊 Thống kê
 export const getThongKeTinNhan = async (req, res) => {
