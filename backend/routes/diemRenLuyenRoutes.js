@@ -1,6 +1,6 @@
 import express from "express";
 import { verifyToken } from "../middleware/verifyToken.js";
-import { isAdmin } from "../middleware/roleCheck.js";
+import { isAdmin, isPDTOrAdmin } from "../middleware/roleCheck.js";
 import {
   getAllDiemRenLuyen,
   getDiemRenLuyen,
@@ -10,16 +10,9 @@ import {
 
 const router = express.Router();
 
-// Sinh viên xem của mình
 router.get("/", verifyToken, getDiemRenLuyen);
-
-// Admin xem tất cả
-router.get("/all", verifyToken, isAdmin, getAllDiemRenLuyen);
-
-// Thêm hoặc cập nhật
-router.post("/", verifyToken, isAdmin, upsertDiemRenLuyen);
-
-// Xóa
-router.delete("/:id_drl", verifyToken, isAdmin, deleteDiemRenLuyen);
+router.get("/all", verifyToken, isPDTOrAdmin, getAllDiemRenLuyen);
+router.post("/", verifyToken, isPDTOrAdmin, upsertDiemRenLuyen);
+router.delete("/:id_drl", verifyToken, isPDTOrAdmin, deleteDiemRenLuyen);
 
 export default router;

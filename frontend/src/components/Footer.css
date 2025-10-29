@@ -1,8 +1,70 @@
-/* src/components/Footer.css */
 .footer {
-  background: #002d5a;
-  color: white;
+  background: #003366;
+  color: #fff;
+  padding: 30px 0 10px;
+  font-size: 15px;
+  margin-top: 40px;
+}
+
+.footer__container {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  max-width: 1200px;
+  margin: auto;
+  flex-wrap: wrap;
+  gap: 20px;
+  padding: 0 20px;
+}
+
+/* Left */
+.footer__left {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.footer-logo {
+  width: 60px;
+  height: 60px;
+  object-fit: contain;
+}
+
+/* Center links */
+.footer__center ul {
+  list-style: none;
+  padding: 0;
+}
+
+.footer__center li {
+  margin-bottom: 8px;
+}
+
+.footer__center a {
+  color: #fff;
+  text-decoration: none;
+  transition: 0.3s;
+}
+
+.footer__center a:hover {
+  color: #ffcc00;
+}
+
+/* Right contact */
+.footer__right p {
+  margin: 4px 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #e0e0e0;
+}
+
+/* Bottom */
+.footer__bottom {
   text-align: center;
-  padding: 15px;
+  margin-top: 20px;
+  padding-top: 10px;
   font-size: 14px;
+  color: #ccc;
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
 }

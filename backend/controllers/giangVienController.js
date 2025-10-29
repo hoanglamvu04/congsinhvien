@@ -75,15 +75,7 @@ export const createGiangVien = async (req, res) => {
 export const updateGiangVien = async (req, res) => {
   try {
     const { ma_giang_vien } = req.params;
-    const {
-      ho_ten,
-      hoc_vi,
-      chuc_vu,
-      ma_khoa,
-      email,
-      dien_thoai,
-      anh_dai_dien,
-    } = req.body;
+    const { ho_ten, hoc_vi, chuc_vu, ma_khoa, email, dien_thoai, anh_dai_dien } = req.body;
 
     const [exist] = await pool.query("SELECT * FROM giang_vien WHERE ma_giang_vien=?", [ma_giang_vien]);
     if (!exist.length) return res.status(404).json({ error: "Không tìm thấy giảng viên" });
@@ -113,5 +105,47 @@ export const deleteGiangVien = async (req, res) => {
     if (error.code === "ER_ROW_IS_REFERENCED_2")
       return res.status(409).json({ error: "Không thể xóa do dữ liệu liên quan" });
     res.status(500).json({ error: "Lỗi khi xóa giảng viên" });
+  }
+};
+
+// 📘 Giảng viên xem thông tin cá nhân
+export const getThongTinCaNhan = async (req, res) => {
+  try {
+    const ma_giang_vien = req.user.ma_giang_vien;
+    const [rows] = await pool.query(
+      `SELECT gv.*, k.ten_khoa 
+       FROM giang_vien gv 
+       LEFT JOIN khoa k ON gv.ma_khoa = k.ma_khoa
+       WHERE gv.ma_giang_vien = ?`,
+      [ma_giang_vien]
+    );
+
+    if (rows.length === 0)
+      return res.status(404).json({ error: "Không tìm thấy thông tin giảng viên" });
+
+    res.json(rows[0]);
+  } catch (error) {
+    console.error("[getThongTinCaNhan]", error);
+    res.status(500).json({ error: "Lỗi khi lấy thông tin giảng viên" });
+  }
+};
+
+// ✏️ Giảng viên cập nhật thông tin cá nhân giới hạn
+export const updateThongTinCaNhan = async (req, res) => {
+  try {
+    const ma_giang_vien = req.user.ma_giang_vien;
+    const { email, dien_thoai, anh_dai_dien } = req.body;
+
+    await pool.query(
+      `UPDATE giang_vien 
+       SET email=?, dien_thoai=?, anh_dai_dien=? 
+       WHERE ma_giang_vien=?`,
+      [email, dien_thoai, anh_dai_dien || null, ma_giang_vien]
+    );
+
+    res.json({ message: "Cập nhật thông tin cá nhân thành công" });
+  } catch (error) {
+    console.error("[updateThongTinCaNhan]", error);
+    res.status(500).json({ error: "Lỗi khi cập nhật thông tin cá nhân" });
   }
 };

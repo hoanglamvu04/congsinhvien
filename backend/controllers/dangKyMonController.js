@@ -1,9 +1,10 @@
 import pool from "../config/db.js";
 
-// 📘 Xem danh sách môn đã đăng ký
-// 📘 Xem danh sách môn đã đăng ký
 export const getMonDaDangKy = async (req, res) => {
   try {
+    const { hocKy, tienDo } = req.query;
+
+    // 🔹 Lấy mã sinh viên
     const [svRows] = await pool.query(
       "SELECT ma_sinh_vien FROM sinh_vien WHERE id_tai_khoan = ?",
       [req.user.id]
@@ -13,19 +14,34 @@ export const getMonDaDangKy = async (req, res) => {
 
     const ma_sinh_vien = svRows[0].ma_sinh_vien;
 
-    const [rows] = await pool.query(
-      `
-      SELECT dk.*, mh.ten_mon, lhp.phong_hoc, hk.ten_hoc_ky, gv.ho_ten AS giang_vien
+    // 🔹 Lọc dữ liệu theo học kỳ & tiến độ nếu có
+    let sql = `
+      SELECT dk.*, mh.ten_mon, lhp.phong_hoc, hk.ten_hoc_ky, hk.ma_hoc_ky,
+             gv.ho_ten AS giang_vien, lhp.tien_do
       FROM dang_ky_mon dk
       JOIN lop_hoc_phan lhp ON dk.ma_lop_hp = lhp.ma_lop_hp
       JOIN mon_hoc mh ON lhp.ma_mon = mh.ma_mon
       JOIN hoc_ky hk ON lhp.ma_hoc_ky = hk.ma_hoc_ky
       LEFT JOIN giang_vien gv ON lhp.ma_giang_vien = gv.ma_giang_vien
       WHERE dk.ma_sinh_vien = ? AND dk.trang_thai = 'dangky'
-      ORDER BY hk.ten_hoc_ky DESC
-      `,
-      [ma_sinh_vien]
-    );
+    `;
+
+    const params = [ma_sinh_vien];
+
+    if (hocKy) {
+      sql += " AND hk.ma_hoc_ky = ?";
+      params.push(hocKy);
+    }
+
+    if (tienDo) {
+      sql += " AND lhp.tien_do = ?";
+      params.push(tienDo);
+    }
+
+    sql += " ORDER BY hk.ten_hoc_ky DESC, mh.ten_mon ASC";
+
+    const [rows] = await pool.query(sql, params);
+
     res.json({ data: rows });
   } catch (error) {
     console.error("[getMonDaDangKy]", error);
@@ -73,7 +89,24 @@ export const dangKyMon = async (req, res) => {
     res.status(500).json({ error: "Lỗi khi đăng ký môn học" });
   }
 };
+export const getSinhVienByLopHocPhan = async (req, res) => {
+  try {
+    const { ma_lop_hp } = req.params;
 
+    const [rows] = await pool.query(
+      `SELECT sv.ma_sinh_vien, sv.ho_ten, sv.email, sv.dien_thoai
+       FROM dang_ky_mon dk
+       JOIN sinh_vien sv ON dk.ma_sinh_vien = sv.ma_sinh_vien
+       WHERE dk.ma_lop_hp = ? AND dk.trang_thai = 'dangky'`,
+      [ma_lop_hp]
+    );
+
+    res.json({ data: rows });
+  } catch (error) {
+    console.error("[getSinhVienByLopHocPhan]", error);
+    res.status(500).json({ error: "Lỗi khi lấy danh sách sinh viên trong lớp học phần" });
+  }
+};
 // 🗑️ Hủy đăng ký
 export const huyDangKy = async (req, res) => {
   try {

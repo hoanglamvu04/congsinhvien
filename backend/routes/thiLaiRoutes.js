@@ -1,29 +1,25 @@
 import express from "express";
 import { verifyToken } from "../middleware/verifyToken.js";
-import { isAdmin } from "../middleware/roleCheck.js";
-import { 
-  getThiLaiBySinhVien, 
-  getAllThiLai, 
-  createThiLai, 
-  updateThiLai, 
-  deleteThiLai 
+import { isAdmin, isPDTOrAdmin } from "../middleware/roleCheck.js";
+import {
+  getAllThiLai,
+  getThiLaiBySinhVien,
+  createThiLai,
+  autoDetectThiLai,
+  updateThiLai,
+  deleteThiLai,
 } from "../controllers/thiLaiController.js";
 
 const router = express.Router();
 
-// 📘 Sinh viên xem danh sách thi lại của mình
-router.get("/", verifyToken, getThiLaiBySinhVien);
+// 🧭 Admin & Phòng Đào Tạo thao tác chính
+router.get("/all", verifyToken, isPDTOrAdmin, getAllThiLai);
+router.post("/add", verifyToken, isPDTOrAdmin, createThiLai);
+router.post("/auto", verifyToken, isPDTOrAdmin, autoDetectThiLai);
+router.put("/:id_thi_lai", verifyToken, isPDTOrAdmin, updateThiLai);
+router.delete("/:id_thi_lai", verifyToken, isPDTOrAdmin, deleteThiLai);
 
-// 📘 Admin xem toàn bộ danh sách thi lại
-router.get("/all", verifyToken, isAdmin, getAllThiLai);
-
-// ➕ Admin hoặc Giảng viên ghi điểm thi lại
-router.post("/", verifyToken, isAdmin, createThiLai);
-
-// ✏️ Cập nhật điểm thi lại
-router.put("/:id_thi_lai", verifyToken, isAdmin, updateThiLai);
-
-// 🗑️ Xóa bản ghi thi lại
-router.delete("/:id_thi_lai", verifyToken, isAdmin, deleteThiLai);
+// 🎓 Sinh viên xem kết quả thi lại của mình
+router.get("/me", verifyToken, getThiLaiBySinhVien);
 
 export default router;

@@ -1,0 +1,40 @@
+.chitiet-lhp-container {
+  padding: 20px;
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 0 8px rgba(0,0,0,0.1);
+}
+
+.info-box p {
+  margin: 4px 0;
+}
+
+h2, h3 {
+  color: #003366;
+  margin-top: 20px;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+}
+
+table th, table td {
+  border: 1px solid #ddd;
+  padding: 8px;
+  text-align: center;
+}
+
+table th {
+  background: #003366;
+  color: #fff;
+}
+
+.back-link {
+  display: inline-block;
+  margin-top: 15px;
+  color: #0077cc;
+  text-decoration: none;
+  font-weight: 600;
+}

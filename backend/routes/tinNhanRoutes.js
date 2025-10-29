@@ -5,33 +5,29 @@ import {
   guiTinNhan,
   getHoiThoai,
   getAllTinNhan,
-  getTinNhanCaNhan, // 👈 thêm mới
+  getTinNhanCaNhan,
   danhDauDaDoc,
   deleteTinNhan,
-  getThongKeTinNhan,
+  getThongKeTinNhan
 } from "../controllers/tinNhanController.js";
 
 const router = express.Router();
 
-// 📩 Gửi tin nhắn
+// 📨 Gửi tin nhắn
 router.post("/", verifyToken, guiTinNhan);
 
-// 👤 Sinh viên xem tất cả tin nhắn liên quan đến mình
-router.get("/my", verifyToken, getTinNhanCaNhan);
-
-// 🧾 Admin xem tất cả
-router.get("/", verifyToken, isAdmin, getAllTinNhan);
-
-// 📊 Thống kê (admin)
+// 📊 Thống kê & Admin (route tĩnh trước)
 router.get("/thongke", verifyToken, getThongKeTinNhan);
+router.get("/", verifyToken, isAdmin, getAllTinNhan);
+router.delete("/:id_tin_nhan", verifyToken, isAdmin, deleteTinNhan);
 
-// 💬 Lấy hội thoại cụ thể
-router.get("/:nguoi_nhan", verifyToken, getHoiThoai);
+// 📬 Lấy tin nhắn cá nhân (phải nằm TRƯỚC route động)
+router.get("/my", verifyToken, getTinNhanCaNhan);
 
 // ✅ Đánh dấu đã đọc
 router.put("/danhdau/:nguoi_nhan", verifyToken, danhDauDaDoc);
 
-// 🗑️ Xóa tin nhắn
-router.delete("/:id_tin_nhan", verifyToken, isAdmin, deleteTinNhan);
+// 💬 Lấy hội thoại cụ thể (đặt CUỐI CÙNG)
+router.get("/:nguoi_nhan", verifyToken, getHoiThoai);
 
 export default router;

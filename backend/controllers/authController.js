@@ -9,7 +9,7 @@ const SALT_ROUNDS = 10;
 
 // 🧩 Đăng ký tài khoản
 export const register = async (req, res) => {
-  const { ten_dang_nhap, mat_khau, vai_tro } = req.body; // 'admin', 'giangvien', 'sinhvien'
+  const { ten_dang_nhap, mat_khau, vai_tro } = req.body; // 'admin', 'giangvien', 'sinhvien', 'nhanvien'
   try {
     // Kiểm tra tồn tại
     const [exist] = await pool.query(
@@ -85,6 +85,23 @@ export const login = async (req, res) => {
       if (gv.length > 0) ma_giang_vien = gv[0].ma_giang_vien;
     }
 
+    // ✅ Nếu là nhân viên → lấy phòng ban
+    let ma_phong = null;
+    let ten_phong = null;
+    if (user.vai_tro === "nhanvien") {
+      const [nv] = await pool.query(
+        `SELECT nv.ma_phong, pb.ten_phong
+         FROM nhan_vien nv
+         LEFT JOIN phong_ban pb ON nv.ma_phong = pb.ma_phong
+         WHERE nv.ma_tai_khoan = ?`,
+        [user.id_tai_khoan]
+      );
+      if (nv.length > 0) {
+        ma_phong = nv[0].ma_phong;
+        ten_phong = nv[0].ten_phong;
+      }
+    }
+
     // ✅ Tạo JWT chứa đầy đủ thông tin
     const token = jwt.sign(
       {
@@ -92,6 +109,8 @@ export const login = async (req, res) => {
         role: user.vai_tro,
         ma_sinh_vien,
         ma_giang_vien,
+        ma_phong,
+        ten_phong,
       },
       process.env.JWT_SECRET,
       { expiresIn: "2h" }
@@ -110,6 +129,9 @@ export const login = async (req, res) => {
       token,
       role: user.vai_tro,
       ma_sinh_vien,
+      ma_giang_vien,
+      ma_phong,
+      ten_phong,
     });
   } catch (error) {
     console.error(error);

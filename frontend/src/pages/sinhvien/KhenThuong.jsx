@@ -1,5 +1,14 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
+import {
+  FaMedal,
+  FaSearch,
+  FaTrophy,
+  FaRegClock,
+  FaMoneyBillWave,
+  FaUniversity,
+} from "react-icons/fa";
+import "../../styles/KhenThuong.css";
 
 const API_URL = process.env.REACT_APP_API_URL || "http://localhost:5000";
 
@@ -36,33 +45,52 @@ const KhenThuong = () => {
 
   return (
     <div className="page-container">
-      <h2>🏅 Danh sách khen thưởng</h2>
+      {/* Header */}
+      <div className="khen-header">
+        <h2>
+          <FaMedal style={{ color: "#007bff", marginRight: 8 }} />
+          Danh sách khen thưởng
+        </h2>
+      </div>
 
       {/* Ô tìm kiếm */}
       <form onSubmit={handleSearch} className="search-box">
         <input
           type="text"
-          placeholder="Tìm kiếm theo nội dung hoặc ngày..."
+          placeholder="🔍 Tìm kiếm theo nội dung hoặc ngày..."
           value={keyword}
           onChange={(e) => setKeyword(e.target.value)}
         />
-        <button type="submit">🔍 Tìm</button>
+        <button type="submit">
+          <FaSearch style={{ marginRight: 4 }} /> Tìm
+        </button>
       </form>
 
       {/* Bảng danh sách */}
       {loading ? (
-        <p>⏳ Đang tải dữ liệu...</p>
+        <p className="loading">
+          <FaRegClock style={{ marginRight: 6 }} /> Đang tải dữ liệu...
+        </p>
       ) : dsKhenThuong.length === 0 ? (
-        <p>⚠️ Không có dữ liệu khen thưởng nào.</p>
+        <p className="no-data">⚠️ Không có dữ liệu khen thưởng nào.</p>
       ) : (
         <table className="data-table">
           <thead>
             <tr>
               <th>#</th>
-              <th>Ngày khen thưởng</th>
+              <th>
+                <FaTrophy style={{ marginRight: 6, color: "#ffc107" }} />
+                Ngày khen thưởng
+              </th>
               <th>Nội dung</th>
-              <th>Khoa</th>
-              <th>Số tiền (VNĐ)</th>
+              <th>
+                <FaUniversity style={{ marginRight: 6, color: "#004080" }} />
+                Khoa
+              </th>
+              <th>
+                <FaMoneyBillWave style={{ marginRight: 6, color: "green" }} />
+                Số tiền (VNĐ)
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -78,7 +106,7 @@ const KhenThuong = () => {
                 </td>
                 <td>{kt.noi_dung}</td>
                 <td>{kt.ten_khoa || "—"}</td>
-                <td>
+                <td className="money">
                   {kt.so_tien
                     ? kt.so_tien.toLocaleString("vi-VN") + " ₫"
                     : "Không có"}

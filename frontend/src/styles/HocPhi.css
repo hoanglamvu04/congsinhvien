@@ -1,0 +1,143 @@
+.hocphi-page {
+  padding: 30px;
+  max-width: 1000px;
+  margin: auto;
+  color: #1e293b;
+}
+
+.hocphi-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #0f3460;
+  margin-bottom: 20px;
+}
+
+.hocphi-header .icon {
+  font-size: 28px;
+}
+
+/* Tổng quan */
+.hocphi-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15px;
+  margin-bottom: 25px;
+}
+
+.summary-card {
+  flex: 1;
+  min-width: 180px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 15px 20px;
+  border-radius: 10px;
+  color: #fff;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+.summary-card svg {
+  font-size: 22px;
+}
+
+.summary-card.blue {
+  background: #2563eb;
+}
+
+.summary-card.green {
+  background: #16a34a;
+}
+
+.summary-card.red {
+  background: #dc2626;
+}
+
+/* Bộ lọc */
+.filter-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 20px;
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  padding: 10px 15px;
+  border-radius: 8px;
+}
+
+.filter-icon {
+  color: #475569;
+}
+
+.filter-bar label {
+  font-weight: 500;
+}
+
+.filter-bar select {
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: 1px solid #cbd5e1;
+  outline: none;
+  background: white;
+}
+
+/* Bảng */
+.table-wrapper {
+  overflow-x: auto;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  border-radius: 6px;
+  overflow: hidden;
+  font-size: 15px;
+}
+
+.data-table th {
+  background: #003366;
+  color: white;
+  padding: 10px 12px;
+}
+
+.data-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.data-table tr:hover td {
+  background: #f1f5ff;
+}
+
+/* Trạng thái */
+.status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.status.green {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.status.yellow {
+  background: #fef9c3;
+  color: #854d0e;
+}
+
+.status.red {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.loading,
+.no-data {
+  text-align: center;
+  color: #475569;
+  padding: 20px 0;
+}

@@ -1,5 +1,14 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
+import {
+  FaExclamationTriangle,
+  FaSearch,
+  FaUserTie,
+  FaGavel,
+  FaCalendarAlt,
+  FaRegClock,
+} from "react-icons/fa";
+import "../../styles/KyLuat.css";
 
 const API_URL = process.env.REACT_APP_API_URL || "http://localhost:5000";
 
@@ -36,9 +45,15 @@ const KyLuat = () => {
 
   return (
     <div className="page-container">
-      <h2>⚠️ Thông tin kỷ luật</h2>
+      {/* Tiêu đề */}
+      <div className="kyluat-header">
+        <h2>
+          <FaExclamationTriangle style={{ color: "#dc3545", marginRight: 8 }} />
+          Thông tin kỷ luật
+        </h2>
+      </div>
 
-      {/* Tìm kiếm */}
+      {/* Ô tìm kiếm */}
       <form onSubmit={handleSearch} className="search-box">
         <input
           type="text"
@@ -46,23 +61,36 @@ const KyLuat = () => {
           value={keyword}
           onChange={(e) => setKeyword(e.target.value)}
         />
-        <button type="submit">🔍 Tìm</button>
+        <button type="submit">
+          <FaSearch style={{ marginRight: 5 }} /> Tìm
+        </button>
       </form>
 
       {/* Danh sách */}
       {loading ? (
-        <p>⏳ Đang tải dữ liệu...</p>
+        <p className="loading">
+          <FaRegClock style={{ marginRight: 6 }} /> Đang tải dữ liệu...
+        </p>
       ) : dsKyLuat.length === 0 ? (
-        <p>✅ Bạn chưa có quyết định kỷ luật nào.</p>
+        <p className="no-data">✅ Bạn chưa có quyết định kỷ luật nào.</p>
       ) : (
         <table className="data-table">
           <thead>
             <tr>
               <th>#</th>
-              <th>Ngày quyết định</th>
-              <th>Hình thức</th>
+              <th>
+                <FaCalendarAlt style={{ marginRight: 5, color: "#007bff" }} />
+                Ngày quyết định
+              </th>
+              <th>
+                <FaGavel style={{ marginRight: 5, color: "#ff9800" }} />
+                Hình thức
+              </th>
               <th>Lý do</th>
-              <th>Người ra quyết định</th>
+              <th>
+                <FaUserTie style={{ marginRight: 5, color: "#004080" }} />
+                Người ra quyết định
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -76,7 +104,7 @@ const KyLuat = () => {
                     year: "numeric",
                   })}
                 </td>
-                <td>{kl.hinh_thuc}</td>
+                <td className="warn">{kl.hinh_thuc}</td>
                 <td>{kl.ly_do || "—"}</td>
                 <td>{kl.nguoi_ra_quyet_dinh || "—"}</td>
               </tr>

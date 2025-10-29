@@ -52,40 +52,48 @@ export const getHoiThoai = async (req, res) => {
   try {
     const { nguoi_nhan } = req.params;
     const user = req.user;
-    let nguoi_gui = null;
 
+    // ✅ Lấy tên đăng nhập thật của người đang đăng nhập
+    let tenDangNhap = null;
     if (user.ma_sinh_vien) {
       const [tk] = await pool.query(
-        `SELECT ten_dang_nhap FROM tai_khoan WHERE id_tai_khoan = (
-           SELECT id_tai_khoan FROM sinh_vien WHERE ma_sinh_vien = ?
-         )`,
+        `SELECT ten_dang_nhap 
+         FROM tai_khoan 
+         WHERE id_tai_khoan = (SELECT id_tai_khoan FROM sinh_vien WHERE ma_sinh_vien = ?)`,
         [user.ma_sinh_vien]
       );
-      if (tk.length > 0) nguoi_gui = tk[0].ten_dang_nhap;
+      if (tk.length > 0) tenDangNhap = tk[0].ten_dang_nhap;
     } else if (user.ma_giang_vien) {
       const [tk] = await pool.query(
-        `SELECT ten_dang_nhap FROM tai_khoan WHERE id_tai_khoan = (
-           SELECT id_tai_khoan FROM giang_vien WHERE ma_giang_vien = ?
-         )`,
+        `SELECT ten_dang_nhap 
+         FROM tai_khoan 
+         WHERE id_tai_khoan = (SELECT id_tai_khoan FROM giang_vien WHERE ma_giang_vien = ?)`,
         [user.ma_giang_vien]
       );
-      if (tk.length > 0) nguoi_gui = tk[0].ten_dang_nhap;
+      if (tk.length > 0) tenDangNhap = tk[0].ten_dang_nhap;
     }
 
-    if (!nguoi_gui)
-      return res.status(400).json({ error: "Không xác định được người gửi" });
+    if (!tenDangNhap)
+      return res.status(403).json({ error: "Không xác định được tài khoản đăng nhập" });
 
+    // ✅ Kiểm tra có quyền xem hội thoại không
+    const [check] = await pool.query(
+      `SELECT COUNT(*) AS count
+       FROM tin_nhan
+       WHERE (nguoi_gui = ? AND nguoi_nhan = ?)
+          OR (nguoi_gui = ? AND nguoi_nhan = ?)`,
+      [tenDangNhap, nguoi_nhan, nguoi_nhan, tenDangNhap]
+    );
+    if (check[0].count === 0)
+      return res.status(403).json({ error: "Không có quyền xem hội thoại này" });
+
+    // ✅ Lấy toàn bộ tin nhắn
     const [rows] = await pool.query(
-      `
-      SELECT t.*, g.ten_dang_nhap AS ten_gui, n.ten_dang_nhap AS ten_nhan
-      FROM tin_nhan t
-      JOIN tai_khoan g ON t.nguoi_gui = g.ten_dang_nhap
-      JOIN tai_khoan n ON t.nguoi_nhan = n.ten_dang_nhap
-      WHERE (t.nguoi_gui = ? AND t.nguoi_nhan = ?)
-         OR (t.nguoi_gui = ? AND t.nguoi_nhan = ?)
-      ORDER BY t.thoi_gian_gui ASC
-      `,
-      [nguoi_gui, nguoi_nhan, nguoi_nhan, nguoi_gui]
+      `SELECT * FROM tin_nhan
+       WHERE (nguoi_gui = ? AND nguoi_nhan = ?)
+          OR (nguoi_gui = ? AND nguoi_nhan = ?)
+       ORDER BY thoi_gian_gui ASC`,
+      [tenDangNhap, nguoi_nhan, nguoi_nhan, tenDangNhap]
     );
 
     res.json({ data: rows });
@@ -122,8 +130,6 @@ export const getAllTinNhan = async (req, res) => {
 export const getTinNhanCaNhan = async (req, res) => {
   try {
     const user = req.user;
-
-    // 🧩 Lấy tên đăng nhập thật từ bảng tai_khoan
     let tenDangNhap = null;
 
     if (user.ma_sinh_vien) {

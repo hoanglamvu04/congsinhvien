@@ -1,5 +1,18 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
+import {
+  FaBullhorn,
+  FaUserCircle,
+  FaUsers,
+  FaCalendarAlt,
+  FaPaperclip,
+  FaTimes,
+  FaRegClock,
+  FaInfoCircle,
+} from "react-icons/fa";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+import "../../styles/ThongBao.css";
 
 const API_URL = process.env.REACT_APP_API_URL || "http://localhost:5000";
 
@@ -9,6 +22,7 @@ const ThongBao = () => {
   const [selected, setSelected] = useState(null);
   const token = localStorage.getItem("token");
 
+  // 📬 Lấy danh sách thông báo
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -18,22 +32,32 @@ const ThongBao = () => {
         setThongBaoList(res.data.data || []);
       } catch (err) {
         console.error(err);
-        alert("❌ Không thể tải thông báo!");
+        toast.error("❌ Không thể tải thông báo!");
       } finally {
         setLoading(false);
       }
     };
     fetchData();
-  }, []);
+  }, [token]);
 
-  if (loading) return <p>⏳ Đang tải thông báo...</p>;
+  if (loading)
+    return (
+      <p className="loading">
+        <FaRegClock style={{ marginRight: 6 }} /> Đang tải thông báo...
+      </p>
+    );
 
   return (
     <div className="page-container">
-      <h2>📢 Thông báo</h2>
+      <ToastContainer position="top-center" autoClose={2000} />
+
+      <h2 className="notice-title">
+        <FaBullhorn style={{ color: "#007bff", marginRight: 8 }} />
+        Thông báo
+      </h2>
 
       {thongBaoList.length === 0 ? (
-        <p>⚠️ Không có thông báo nào.</p>
+        <p className="no-data">⚠️ Không có thông báo nào.</p>
       ) : (
         <div className="notice-list">
           <table className="data-table">
@@ -50,22 +74,43 @@ const ThongBao = () => {
                 <tr
                   key={tb.id_thong_bao}
                   onClick={() => setSelected(tb)}
-                  style={{ cursor: "pointer" }}
+                  className="row-click"
                 >
-                  <td>{tb.tieu_de}</td>
-                  <td>
-                    {tb.doi_tuong === "tatca"
-                      ? "📢 Toàn trường"
-                      : tb.doi_tuong === "lop"
-                      ? `👥 Lớp ${tb.ma_doi_tuong}`
-                      : "👤 Cá nhân"}
+                  <td className="tb-title">
+                    <FaInfoCircle
+                      style={{ color: "#007bff", marginRight: 6 }}
+                    />
+                    {tb.tieu_de}
                   </td>
                   <td>
-                    {new Date(tb.ngay_gui).toLocaleDateString("vi-VN", {
-                      day: "2-digit",
-                      month: "2-digit",
-                      year: "numeric",
-                    })}
+                    {tb.doi_tuong === "tatca" ? (
+                      <>
+                        <FaBullhorn
+                          style={{ color: "#007bff", marginRight: 4 }}
+                        />
+                        Toàn trường
+                      </>
+                    ) : tb.doi_tuong === "lop" ? (
+                      <>
+                        <FaUsers
+                          style={{ color: "#28a745", marginRight: 4 }}
+                        />
+                        Lớp {tb.ma_doi_tuong}
+                      </>
+                    ) : (
+                      <>
+                        <FaUserCircle
+                          style={{ color: "#6c757d", marginRight: 4 }}
+                        />
+                        Cá nhân
+                      </>
+                    )}
+                  </td>
+                  <td>
+                    <FaCalendarAlt
+                      style={{ color: "#ffc107", marginRight: 4 }}
+                    />
+                    {new Date(tb.ngay_gui).toLocaleDateString("vi-VN")}
                   </td>
                   <td>{tb.nguoi_gui}</td>
                 </tr>
@@ -75,19 +120,50 @@ const ThongBao = () => {
         </div>
       )}
 
+      {/* 🧾 Modal xem chi tiết */}
       {selected && (
-        <div className="notice-detail">
-          <h3>{selected.tieu_de}</h3>
-          <p><strong>Người gửi:</strong> {selected.nguoi_gui}</p>
-          <p><strong>Ngày gửi:</strong> {new Date(selected.ngay_gui).toLocaleString("vi-VN")}</p>
-          <hr />
-          <p>{selected.noi_dung}</p>
-          {selected.tep_dinh_kem && (
-            <p>
-              📎 <a href={selected.tep_dinh_kem} target="_blank" rel="noreferrer">Xem tệp đính kèm</a>
-            </p>
-          )}
-          <button onClick={() => setSelected(null)}>⬅️ Quay lại</button>
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <div className="modal-header">
+              <h3>
+                <FaBullhorn style={{ color: "#007bff", marginRight: 8 }} />
+                {selected.tieu_de}
+              </h3>
+              <FaTimes
+                className="close-icon"
+                onClick={() => setSelected(null)}
+              />
+            </div>
+
+            <div className="modal-body">
+              <p>
+                <strong>Người gửi:</strong> {selected.nguoi_gui}
+              </p>
+              <p>
+                <strong>Ngày gửi:</strong>{" "}
+                {new Date(selected.ngay_gui).toLocaleString("vi-VN")}
+              </p>
+              <hr />
+              <p className="tb-content">{selected.noi_dung}</p>
+
+              {selected.tep_dinh_kem && (
+                <p className="tb-file">
+                  <FaPaperclip style={{ marginRight: 6 }} />
+                  <a
+                    href={selected.tep_dinh_kem}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    Xem tệp đính kèm
+                  </a>
+                </p>
+              )}
+            </div>
+
+            <div className="modal-footer">
+              <button onClick={() => setSelected(null)}>Đóng</button>
+            </div>
+          </div>
         </div>
       )}
     </div>

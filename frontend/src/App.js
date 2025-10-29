@@ -1,6 +1,9 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import Login from "./pages/Login";
 import Home from "./pages/Home";
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+import { jwtDecode } from "jwt-decode";
 
 /* ===== ADMIN IMPORTS ===== */
 import AdminLayout from "./pages/admin/AdminLayout";
@@ -29,6 +32,7 @@ import ThongBaoManager from "./pages/admin/ThongBaoManager";
 import LichSuHoatDongManager from "./pages/admin/LichSuHoatDongManager";
 import SinhVienManager from "./pages/admin/SinhVienManager";
 import ThoiKhoaBieuManager from "./pages/admin/ThoiKhoaBieuManager";
+
 /* ===== SINH VIÊN IMPORTS ===== */
 import UserLayout from "./layouts/UserLayout";
 import HomeSinhVien from "./pages/sinhvien/HomeSinhVien";
@@ -46,14 +50,49 @@ import KhenThuong from "./pages/sinhvien/KhenThuong";
 import KyLuat from "./pages/sinhvien/KyLuat";
 import DiemRenLuyen from "./pages/sinhvien/DiemRenLuyen";
 
+/* ===== GIẢNG VIÊN IMPORTS ===== */
+import GiangVienLayout from "./pages/giangvien/GiangVienLayout";
+import GiangVienDashboard from "./pages/giangvien/GiangVienDashboard";
+import ThongTinGiangVien from "./pages/giangvien/ThongTinGiangVien";
+import LichDayGiangVien from "./pages/giangvien/LichDayGiangVien";
+import ChiTietLopHocPhan from "./pages/giangvien/ChiTietLopHocPhan";
+import LopHocPhanGV from "./pages/giangvien/LopHocPhanGV";
+import DiemDanhGiangVien from "./pages/giangvien/DiemDanhGiangVien";
+import QuanLyDiemGV from "./pages/giangvien/QuanLyDiemGV";
+import ThongBaoGiangVien from "./pages/giangvien/ThongBaoGiangVien";
+
+/* ===== PHÒNG ĐÀO TẠO IMPORT ===== */
+import PDTLayout from "./pages/phongdaotao/PDTLayout";
+import PDTDashboard from "./pages/phongdaotao/PDTDashboard";
+import PDTHocKyManager from "./pages/phongdaotao/PDTHocKyManager";
+import PDTMonHocManager from "./pages/phongdaotao/PDTMonHocManager";
+import PDTLopHocPhanManager from "./pages/phongdaotao/PDTLopHocPhanManager";
+import PDTQuanLyDangKy from "./pages/phongdaotao/PDTQuanLyDangKy";
+import PDTThoiKhoaBieuManager from "./pages/phongdaotao/PDTThoiKhoaBieuManager";
+import PDTThiLaiManager from "./pages/phongdaotao/PDTThiLaiManager";
+import PDTKhenThuongManager from "./pages/phongdaotao/PDTKhenThuongManager";
+import PDTKyLuatManager from "./pages/phongdaotao/PDTKyLuatManager";
+import PDTDiemRenLuyen from "./pages/phongdaotao/PDTDiemRenLuyen";
+import DuyetDiem from "./pages/phongdaotao/DuyetDiem";
+import ThongBaoHocVu from "./pages/phongdaotao/ThongBaoHocVu";
 function App() {
   const token = localStorage.getItem("token");
   const role = localStorage.getItem("role");
 
+  // Giải mã token để lấy tên phòng (nếu là nhân viên)
+  let ten_phong = null;
+  try {
+    if (token) {
+      const decoded = jwtDecode(token);
+      ten_phong = decoded.ten_phong;
+    }
+  } catch (err) {
+    console.error("❌ Lỗi giải mã token:", err);
+  }
+
   return (
     <Router>
       <Routes>
-
         {/* ===== TRANG CHUNG ===== */}
         <Route path="/" element={token ? <Navigate to="/home" /> : <Login />} />
         <Route path="/login" element={<Login />} />
@@ -78,13 +117,58 @@ function App() {
           <Route path="dangky" element={<SinhVienDangKy />} />
           <Route path="hocphi" element={<HocPhi />} />
           <Route path="thongbao" element={<ThongBao />} />
-          <Route path="tinnhan" element={<TinNhan />} />
+          <Route path="tinnhan/:id?" element={<TinNhan />} />
           <Route path="phanhoi" element={<PhanHoi />} />
           <Route path="khaosat" element={<KhaoSat />} />
           <Route path="khenthuong" element={<KhenThuong />} />
           <Route path="kyluat" element={<KyLuat />} />
           <Route path="diemrenluyen" element={<DiemRenLuyen />} />
+        </Route>
 
+        {/* ===== GIAO DIỆN GIẢNG VIÊN ===== */}
+        <Route
+          path="/giangvien/*"
+          element={
+            role === "giangvien" ? (
+              <GiangVienLayout />
+            ) : (
+              <Navigate to="/login" replace />
+            )
+          }
+        >
+          <Route index element={<GiangVienDashboard />} />
+          <Route path="thongtin" element={<ThongTinGiangVien />} />
+          <Route path="lichday" element={<LichDayGiangVien />} />
+          <Route path="lophocphan" element={<LopHocPhanGV />} />
+          <Route path="lophocphan/:ma_lop_hp" element={<ChiTietLopHocPhan />} />
+          <Route path="diemdanh" element={<DiemDanhGiangVien />} />
+          <Route path="diem" element={<QuanLyDiemGV />} />
+          <Route path="thongbao" element={<ThongBaoGiangVien />} />
+        </Route>
+
+        {/* ===== GIAO DIỆN PHÒNG ĐÀO TẠO ===== */}
+        <Route
+          path="/phongdaotao/*"
+          element={
+            role === "nhanvien" && ten_phong === "Phòng Đào Tạo" ? (
+              <PDTLayout />
+            ) : (
+              <Navigate to="/login" replace />
+            )
+          }
+        >
+          <Route index element={<PDTDashboard />} />
+          <Route path="hocky" element={<PDTHocKyManager />} />
+          <Route path="monhoc" element={<PDTMonHocManager />} />
+          <Route path="lophocphan" element={<PDTLopHocPhanManager />} />
+          <Route path="dangky" element={<PDTQuanLyDangKy />} />
+          <Route path="thoi-khoa-bieu" element={<PDTThoiKhoaBieuManager />} />
+          <Route path="thilai" element={<PDTThiLaiManager />} />
+          <Route path="khenthuong" element={<PDTKhenThuongManager />} />
+          <Route path="kyluat" element={<PDTKyLuatManager />} />
+          <Route path="duyetdiem" element={<DuyetDiem />} />
+          <Route path="diemrenluyen" element={<PDTDiemRenLuyen />} />
+          <Route path="thongbao" element={<ThongBaoHocVu />} />
         </Route>
 
         {/* ===== GIAO DIỆN ADMIN ===== */}
@@ -123,10 +207,15 @@ function App() {
           <Route path="lichsuhoatdong" element={<LichSuHoatDongManager />} />
           <Route path="sinhvien" element={<SinhVienManager />} />
           <Route path="thoi-khoa-bieu" element={<ThoiKhoaBieuManager />} />
-
         </Route>
-
       </Routes>
+
+      <ToastContainer
+        position="top-right"
+        autoClose={2500}
+        limit={1}
+        closeOnClick={false}
+      />
     </Router>
   );
 }

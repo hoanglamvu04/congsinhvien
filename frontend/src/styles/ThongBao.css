@@ -1,0 +1,166 @@
+.notice-title {
+  color: #003366;
+  display: flex;
+  align-items: center;
+  font-weight: 600;
+  margin-bottom: 16px;
+}
+
+/* 🔔 Bảng thông báo */
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #fff;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+.data-table th {
+  background: #003366;
+  color: white;
+  text-align: center;
+  padding: 10px;
+}
+
+.data-table td {
+  text-align: center;
+  padding: 10px;
+  border-bottom: 1px solid #ddd;
+  font-size: 14px;
+}
+
+.row-click {
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.row-click:hover {
+  background: #f1f5ff;
+}
+
+.tb-title {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  font-weight: 500;
+  color: #003366;
+}
+
+/* ⏳ Loading & rỗng */
+.loading {
+  color: #007bff;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+}
+
+.no-data {
+  color: #666;
+  font-style: italic;
+  margin-top: 10px;
+  text-align: center;
+}
+
+/* 🧾 Modal chi tiết */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 50;
+  animation: fadeIn 0.2s ease-in;
+}
+
+.modal-content {
+  background: white;
+  width: 550px;
+  max-width: 95%;
+  border-radius: 10px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  overflow: hidden;
+  animation: slideUp 0.25s ease-out;
+}
+
+.modal-header {
+  background: #003366;
+  color: white;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 20px;
+  font-weight: 600;
+}
+
+.close-icon {
+  cursor: pointer;
+  font-size: 1.2rem;
+  color: white;
+  transition: 0.2s;
+}
+
+.close-icon:hover {
+  color: #ffc107;
+}
+
+.modal-body {
+  padding: 16px 20px;
+}
+
+.tb-content {
+  white-space: pre-line;
+  line-height: 1.6;
+  color: #333;
+}
+
+.tb-file a {
+  color: #007bff;
+  text-decoration: none;
+}
+
+.tb-file a:hover {
+  text-decoration: underline;
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  padding: 10px 20px;
+  background: #f8f9fa;
+}
+
+.modal-footer button {
+  background: #007bff;
+  color: white;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.modal-footer button:hover {
+  background: #005dc1;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}

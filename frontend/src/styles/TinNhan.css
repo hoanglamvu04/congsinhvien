@@ -1,0 +1,289 @@
+/* ==========================
+   🔹 Layout tổng thể
+========================== */
+.messenger-layout {
+  display: flex;
+  height: calc(100vh - 120px);
+  background: #fff;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.08);
+}
+
+/* ==========================
+   🔹 Sidebar danh bạ
+========================== */
+.sidebar {
+  width: 300px;
+  background: #f7f9fc;
+  border-right: 1px solid #e3e6eb;
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar-title {
+  font-size: 18px;
+  font-weight: 600;
+  padding: 16px;
+  color: #1a237e;
+  border-bottom: 1px solid #ddd;
+}
+
+.sidebar-search {
+  margin: 10px 16px;
+  padding: 8px 12px;
+  border-radius: 20px;
+  border: 1px solid #ddd;
+  outline: none;
+  font-size: 14px;
+}
+
+.contact-list {
+  flex: 1;
+  overflow-y: auto;
+  padding-bottom: 10px;
+}
+
+/* ==========================
+   🔹 Item trong danh bạ
+========================== */
+.contact-item {
+  display: flex;
+  align-items: center;
+  padding: 10px 16px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+  border-left: 4px solid transparent;
+}
+
+.contact-item:hover {
+  background: #e8f0fe;
+}
+
+.contact-item.active {
+  background: #e3f2fd;
+  border-left: 4px solid #1565c0;
+}
+
+.contact-avatar {
+  position: relative;
+  margin-right: 12px;
+}
+
+.contact-avatar img {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid #ccc;
+  background-color: #fff;
+}
+
+/* Chấm online nhỏ */
+.online-dot {
+  position: absolute;
+  bottom: 2px;
+  right: 2px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #4caf50;
+  border: 2px solid white;
+}
+
+.contact-info {
+  flex: 1;
+}
+
+.contact-name {
+  font-weight: 500;
+  color: #333;
+  font-size: 15px;
+}
+
+.contact-preview {
+  font-size: 13px;
+  color: #777;
+}
+
+/* Số tin chưa đọc */
+.unread-badge {
+  background: #e53935;
+  color: #fff;
+  font-size: 12px;
+  padding: 2px 7px;
+  border-radius: 10px;
+  margin-left: auto;
+  min-width: 20px;
+  text-align: center;
+}
+
+/* ==========================
+   🔹 Khu vực chat chính
+========================== */
+.chat-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: #fafafa;
+}
+
+/* Header */
+.chat-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 20px;
+  border-bottom: 1px solid #ddd;
+  background: #fdfdfd;
+}
+
+.chat-header img {
+  width: 45px;
+  height: 45px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid #ccc;
+}
+
+.user-name {
+  font-weight: 600;
+  font-size: 16px;
+}
+
+.user-status {
+  font-size: 13px;
+  color: #666;
+}
+
+/* Chat box */
+.chat-box {
+  flex: 1;
+  padding: 20px;
+  overflow-y: auto;
+  background: #f5f5f5;
+}
+
+.chat-date {
+  text-align: center;
+  font-size: 13px;
+  color: #888;
+  margin: 10px 0;
+}
+
+/* Tin nhắn */
+.msg-row {
+  display: flex;
+  margin-bottom: 10px;
+  align-items: flex-end;
+}
+
+.msg-row.mine {
+  justify-content: flex-end;
+}
+
+.msg-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+  margin-right: 8px;
+  border: 1px solid #ccc;
+}
+
+.msg-bubble {
+  max-width: 60%;
+  border-radius: 16px;
+  padding: 10px 14px;
+  font-size: 14px;
+  line-height: 1.4;
+  word-break: break-word;
+  background: #e0e0e0;
+  position: relative;
+}
+
+.msg-row.mine .msg-bubble {
+  background: #1976d2;
+  color: white;
+  border-bottom-right-radius: 4px;
+}
+
+.msg-row.theirs .msg-bubble {
+  background: #ffffff;
+  color: #333;
+  border-bottom-left-radius: 4px;
+}
+
+.msg-time {
+  font-size: 11px;
+  text-align: right;
+  color: rgba(0, 0, 0, 0.5);
+  margin-top: 3px;
+}
+
+/* Gõ tin */
+.chat-input {
+  display: flex;
+  border-top: 1px solid #ddd;
+  background: #fff;
+  padding: 10px 15px;
+  align-items: center;
+}
+
+.chat-input input {
+  flex: 1;
+  border: none;
+  padding: 10px 14px;
+  border-radius: 20px;
+  background: #f0f2f5;
+  outline: none;
+  font-size: 14px;
+}
+
+.chat-input button {
+  background: #1976d2;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 20px;
+  margin-left: 10px;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.chat-input button:hover {
+  background: #125ea8;
+}
+
+/* Hiệu ứng typing */
+.typing span {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  background: #999;
+  border-radius: 50%;
+  margin-right: 4px;
+  animation: blink 1.4s infinite both;
+}
+
+.typing span:nth-child(2) {
+  animation-delay: 0.2s;
+}
+.typing span:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes blink {
+  0%, 80%, 100% { opacity: 0; }
+  40% { opacity: 1; }
+}
+
+/* Màn hình trống */
+.chat-empty {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #777;
+  font-size: 16px;
+}

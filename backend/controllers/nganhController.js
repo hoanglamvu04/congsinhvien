@@ -1,6 +1,6 @@
 import pool from "../config/db.js";
 
-// ✅ Lấy danh sách ngành (có tìm kiếm, join khoa)
+// 📘 Lấy danh sách ngành (có tìm kiếm + join khoa)
 export const getAllNganh = async (req, res) => {
   try {
     const { q = "" } = req.query;
@@ -11,7 +11,7 @@ export const getAllNganh = async (req, res) => {
        LEFT JOIN khoa k ON ng.ma_khoa = k.ma_khoa
        WHERE ng.ma_nganh LIKE ? 
           OR ng.ten_nganh LIKE ? 
-          OR k.ten_khoa LIKE ?
+          OR k.ten_khoa LIKE ? 
           OR ng.loai_nganh LIKE ?`,
       [keyword, keyword, keyword, keyword]
     );
@@ -22,22 +22,22 @@ export const getAllNganh = async (req, res) => {
   }
 };
 
-// ✅ Thêm ngành
+// ➕ Thêm ngành
 export const createNganh = async (req, res) => {
   try {
     const { ma_nganh, ten_nganh, ma_khoa, loai_nganh, mo_ta } = req.body;
-
     if (!ma_nganh || !ten_nganh || !ma_khoa)
       return res.status(400).json({ error: "Thiếu thông tin bắt buộc" });
 
-    const [exist] = await pool.query("SELECT * FROM nganh WHERE ma_nganh = ?", [ma_nganh]);
-    if (exist.length)
-      return res.status(409).json({ error: "Mã ngành đã tồn tại" });
+    const [exist] = await pool.query("SELECT 1 FROM nganh WHERE ma_nganh = ?", [ma_nganh]);
+    if (exist.length) return res.status(409).json({ error: "Mã ngành đã tồn tại" });
 
     await pool.query(
-      "INSERT INTO nganh (ma_nganh, ten_nganh, ma_khoa, loai_nganh, mo_ta) VALUES (?, ?, ?, ?, ?)",
+      `INSERT INTO nganh (ma_nganh, ten_nganh, ma_khoa, loai_nganh, mo_ta)
+       VALUES (?, ?, ?, ?, ?)`,
       [ma_nganh, ten_nganh, ma_khoa, loai_nganh || null, mo_ta || null]
     );
+
     res.status(201).json({ message: "Thêm ngành thành công" });
   } catch (error) {
     console.error("[createNganh]", error);
@@ -45,19 +45,22 @@ export const createNganh = async (req, res) => {
   }
 };
 
-// ✅ Cập nhật ngành
+// ✏️ Cập nhật ngành
 export const updateNganh = async (req, res) => {
   try {
     const { ma_nganh } = req.params;
-    const { ten_nganh, loai_nganh, mo_ta, ma_khoa } = req.body;
+    const { ten_nganh, ma_khoa, loai_nganh, mo_ta } = req.body;
 
     const [exist] = await pool.query("SELECT * FROM nganh WHERE ma_nganh = ?", [ma_nganh]);
     if (!exist.length) return res.status(404).json({ error: "Không tìm thấy ngành" });
 
     await pool.query(
-      "UPDATE nganh SET ten_nganh=?, loai_nganh=?, mo_ta=?, ma_khoa=? WHERE ma_nganh=?",
-      [ten_nganh, loai_nganh || null, mo_ta || null, ma_khoa || exist[0].ma_khoa, ma_nganh]
+      `UPDATE nganh
+       SET ten_nganh = ?, ma_khoa = ?, loai_nganh = ?, mo_ta = ?
+       WHERE ma_nganh = ?`,
+      [ten_nganh, ma_khoa || exist[0].ma_khoa, loai_nganh || null, mo_ta || null, ma_nganh]
     );
+
     res.json({ message: "Cập nhật ngành thành công" });
   } catch (error) {
     console.error("[updateNganh]", error);
@@ -65,7 +68,7 @@ export const updateNganh = async (req, res) => {
   }
 };
 
-// ✅ Xóa ngành
+// 🗑️ Xóa ngành
 export const deleteNganh = async (req, res) => {
   try {
     const { ma_nganh } = req.params;
@@ -73,9 +76,8 @@ export const deleteNganh = async (req, res) => {
     res.json({ message: "Xóa ngành thành công" });
   } catch (error) {
     console.error("[deleteNganh]", error);
-    if (error.code === "ER_ROW_IS_REFERENCED_2") {
-      return res.status(409).json({ error: "Không thể xóa do liên quan dữ liệu khác" });
-    }
+    if (error.code === "ER_ROW_IS_REFERENCED_2")
+      return res.status(409).json({ error: "Không thể xóa do dữ liệu liên quan" });
     res.status(500).json({ error: "Lỗi khi xóa ngành" });
   }
 };

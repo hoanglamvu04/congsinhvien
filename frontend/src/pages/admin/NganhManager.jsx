@@ -19,7 +19,6 @@ const NganhManager = () => {
   const [editing, setEditing] = useState(null);
   const token = localStorage.getItem("token");
 
-  // 🔄 Lấy danh sách ngành
   const fetchNganh = async () => {
     try {
       setLoading(true);
@@ -28,21 +27,20 @@ const NganhManager = () => {
         params: { q: keyword },
       });
       setNganhList(res.data.data || []);
-    } catch (err) {
-      console.error(err);
+    } catch {
       alert("Lỗi khi tải danh sách ngành!");
     } finally {
       setLoading(false);
     }
   };
 
-  // 📚 Lấy danh sách khoa cho dropdown
   const fetchKhoa = async () => {
     try {
       const res = await axios.get(`${API_URL}/api/khoa`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      setKhoaList(res.data.data || res.data);
+      const data = Array.isArray(res.data) ? res.data : res.data.data || [];
+      setKhoaList(data);
     } catch {
       console.warn("Không thể tải danh sách khoa");
     }
@@ -53,11 +51,10 @@ const NganhManager = () => {
     fetchNganh();
   }, [keyword]);
 
-  // ➕ Thêm / sửa ngành
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!form.ma_nganh || !form.ten_nganh || !form.ma_khoa)
-      return alert("Điền đủ Mã ngành, Tên ngành và Mã khoa!");
+      return alert("Điền đủ Mã ngành, Tên ngành và Khoa!");
     try {
       if (editing) {
         await axios.put(`${API_URL}/api/nganh/${editing}`, form, {
@@ -74,12 +71,10 @@ const NganhManager = () => {
       setEditing(null);
       fetchNganh();
     } catch (err) {
-      console.error(err);
       alert(err.response?.data?.error || "Lỗi khi lưu ngành!");
     }
   };
 
-  // 🗑️ Xóa ngành
   const handleDelete = async (ma_nganh) => {
     if (!window.confirm("Bạn có chắc muốn xóa ngành này không?")) return;
     try {
@@ -93,13 +88,12 @@ const NganhManager = () => {
     }
   };
 
-  // ✏️ Sửa ngành
   const handleEdit = (item) => {
     setEditing(item.ma_nganh);
     setForm({
       ma_nganh: item.ma_nganh,
       ten_nganh: item.ten_nganh,
-      ma_khoa: item.ma_khoa,
+      ma_khoa: item.ma_khoa || "",
       loai_nganh: item.loai_nganh || "",
       mo_ta: item.mo_ta || "",
     });
@@ -109,17 +103,15 @@ const NganhManager = () => {
     <div className="admin-dashboard">
       <h1>📚 Quản lý ngành</h1>
 
-      {/* 🔍 Thanh tìm kiếm */}
       <div className="filter-bar">
         <input
           type="text"
-          placeholder="Tìm kiếm mã ngành, tên ngành hoặc khoa..."
+          placeholder="Tìm mã ngành, tên ngành hoặc khoa..."
           value={keyword}
           onChange={(e) => setKeyword(e.target.value)}
         />
       </div>
 
-      {/* 🧩 Form thêm / sửa ngành */}
       <form className="create-form" onSubmit={handleSubmit}>
         <h3>{editing ? "✏️ Sửa ngành" : "➕ Thêm ngành mới"}</h3>
         {!editing && (
@@ -149,7 +141,7 @@ const NganhManager = () => {
         </select>
         <input
           type="text"
-          placeholder="Loại ngành (Đại học, Cao đẳng, ...)"
+          placeholder="Loại ngành (VD: Đại học, Cao đẳng, Liên thông...)"
           value={form.loai_nganh}
           onChange={(e) => setForm({ ...form, loai_nganh: e.target.value })}
         />
@@ -173,7 +165,6 @@ const NganhManager = () => {
         )}
       </form>
 
-      {/* 📋 Bảng danh sách ngành */}
       <div className="table-container">
         {loading ? (
           <p>Đang tải...</p>

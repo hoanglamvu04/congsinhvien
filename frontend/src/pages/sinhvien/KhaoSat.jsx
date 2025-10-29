@@ -1,5 +1,21 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+import {
+  FaPoll,
+  FaCheckCircle,
+  FaBan,
+  FaReply,
+  FaStar,
+  FaRegStar,
+  FaPaperPlane,
+  FaArrowLeft,
+  FaUserSecret,
+  FaSearch,
+  FaRegClock,
+} from "react-icons/fa";
+import "../../styles/KhaoSat.css";
 
 const API_URL = process.env.REACT_APP_API_URL || "http://localhost:5000";
 
@@ -13,6 +29,7 @@ const KhaoSat = () => {
     an_danh: false,
   });
   const [daTraLoi, setDaTraLoi] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   // 📘 Lấy danh sách khảo sát
   useEffect(() => {
@@ -24,27 +41,33 @@ const KhaoSat = () => {
         setKhaoSats(res.data.data || []);
       } catch (err) {
         console.error("❌ Lỗi khi tải khảo sát:", err);
-        alert("Không thể tải danh sách khảo sát!");
+        toast.error("Không thể tải danh sách khảo sát!");
+      } finally {
+        setLoading(false);
       }
     };
     fetchKhaoSat();
   }, [token]);
 
-  // 📋 Lấy danh sách khảo sát đã trả lời (từ BE hoặc tạm lưu FE)
+  // 📋 Lấy danh sách khảo sát đã trả lời (FE)
   useEffect(() => {
     const stored = JSON.parse(localStorage.getItem("daTraLoi") || "[]");
     setDaTraLoi(stored);
   }, []);
 
   const handleSelect = (ks) => {
+    if (ks.trang_thai !== "mo") {
+      toast.warning("⛔ Khảo sát này đã đóng, bạn không thể trả lời!");
+      return;
+    }
     setSelected(ks);
     setForm({ diem_danh_gia: 0, noi_dung_phan_hoi: "", an_danh: false });
   };
 
   // 🧩 Gửi phản hồi khảo sát
   const guiPhieu = async () => {
-    if (!form.diem_danh_gia || !form.noi_dung_phan_hoi) {
-      alert("Vui lòng chọn điểm và nhập nội dung phản hồi!");
+    if (!form.diem_danh_gia || !form.noi_dung_phan_hoi.trim()) {
+      toast.warning("Vui lòng chọn điểm và nhập nội dung phản hồi!");
       return;
     }
     try {
@@ -58,26 +81,35 @@ const KhaoSat = () => {
         },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      alert("✅ Gửi phản hồi thành công!");
+      toast.success("✅ Gửi phản hồi thành công!");
       const newList = [...daTraLoi, selected.id_khao_sat];
       setDaTraLoi(newList);
       localStorage.setItem("daTraLoi", JSON.stringify(newList));
       setSelected(null);
     } catch (err) {
       console.error("❌ Lỗi khi gửi phản hồi:", err);
-      alert("Không thể gửi phản hồi!");
+      toast.error("Không thể gửi phản hồi!");
     }
   };
 
   return (
     <div className="page-container">
-      <h2>🧾 Khảo sát & Đánh giá</h2>
+      <ToastContainer position="top-center" autoClose={2000} />
+
+      <h2 className="title-header">
+        <FaPoll style={{ color: "#007bff", marginRight: 8 }} />
+        Khảo sát & Đánh giá
+      </h2>
 
       {/* Danh sách khảo sát */}
       {!selected ? (
         <div className="survey-list">
-          {khaoSats.length === 0 ? (
-            <p>Hiện không có khảo sát nào dành cho bạn.</p>
+          {loading ? (
+            <p className="loading">
+              <FaRegClock style={{ marginRight: 6 }} /> Đang tải dữ liệu...
+            </p>
+          ) : khaoSats.length === 0 ? (
+            <p>📭 Hiện không có khảo sát nào dành cho bạn.</p>
           ) : (
             <table className="data-table">
               <thead>
@@ -97,15 +129,36 @@ const KhaoSat = () => {
                     <td>{ks.tieu_de}</td>
                     <td>{ks.doi_tuong}</td>
                     <td>
-                      {new Date(ks.ngay_bat_dau).toLocaleDateString("vi-VN")} -{" "}
+                      {new Date(ks.ngay_bat_dau).toLocaleDateString("vi-VN")} –{" "}
                       {new Date(ks.ngay_ket_thuc).toLocaleDateString("vi-VN")}
                     </td>
-                    <td>{ks.trang_thai === "mo" ? "🟢 Đang mở" : "🔴 Đã đóng"}</td>
+                    <td>
+                      {ks.trang_thai === "mo" ? (
+                        <span className="status-open">
+                          <FaCheckCircle /> Đang mở
+                        </span>
+                      ) : (
+                        <span className="status-closed">
+                          <FaBan /> Đã đóng
+                        </span>
+                      )}
+                    </td>
                     <td>
                       {daTraLoi.includes(ks.id_khao_sat) ? (
-                        <span>✅ Đã trả lời</span>
+                        <span className="answered">
+                          <FaCheckCircle /> Đã trả lời
+                        </span>
                       ) : (
-                        <button onClick={() => handleSelect(ks)}>Trả lời</button>
+                        <button
+                          className={`btn-reply ${
+                            ks.trang_thai !== "mo" ? "disabled" : ""
+                          }`}
+                          onClick={() => handleSelect(ks)}
+                          disabled={ks.trang_thai !== "mo"}
+                        >
+                          <FaReply style={{ marginRight: 5 }} />
+                          Trả lời
+                        </button>
                       )}
                     </td>
                   </tr>
@@ -115,9 +168,12 @@ const KhaoSat = () => {
           )}
         </div>
       ) : (
-        // Form trả lời khảo sát
+        // 📝 Form trả lời khảo sát
         <div className="survey-form">
-          <h4>🗒️ Khảo sát: {selected.tieu_de}</h4>
+          <h4>
+            <FaPoll style={{ color: "#007bff", marginRight: 6 }} />
+            {selected.tieu_de}
+          </h4>
           <p className="survey-content">{selected.noi_dung}</p>
 
           <label>Điểm đánh giá (1–5):</label>
@@ -126,13 +182,11 @@ const KhaoSat = () => {
               <span
                 key={num}
                 onClick={() => setForm({ ...form, diem_danh_gia: num })}
-                style={{
-                  cursor: "pointer",
-                  fontSize: "1.5em",
-                  color: num <= form.diem_danh_gia ? "#ffc107" : "#ccc",
-                }}
+                className={`star ${
+                  num <= form.diem_danh_gia ? "active" : "inactive"
+                }`}
               >
-                ★
+                {num <= form.diem_danh_gia ? <FaStar /> : <FaRegStar />}
               </span>
             ))}
           </div>
@@ -141,22 +195,33 @@ const KhaoSat = () => {
             rows="4"
             placeholder="Nhập nội dung phản hồi của bạn..."
             value={form.noi_dung_phan_hoi}
-            onChange={(e) => setForm({ ...form, noi_dung_phan_hoi: e.target.value })}
+            onChange={(e) =>
+              setForm({ ...form, noi_dung_phan_hoi: e.target.value })
+            }
           ></textarea>
 
           <div className="anon-toggle">
-            <input
-              type="checkbox"
-              checked={form.an_danh}
-              onChange={(e) => setForm({ ...form, an_danh: e.target.checked })}
-            />
-            <label>Gửi ẩn danh</label>
+            <label>
+              <input
+                type="checkbox"
+                checked={form.an_danh}
+                onChange={(e) =>
+                  setForm({ ...form, an_danh: e.target.checked })
+                }
+              />
+              <FaUserSecret style={{ marginRight: 4 }} />
+              Gửi ẩn danh
+            </label>
           </div>
 
-          <button onClick={guiPhieu}>📨 Gửi phản hồi</button>
-          <button className="back-btn" onClick={() => setSelected(null)}>
-            ← Quay lại
-          </button>
+          <div className="form-actions">
+            <button className="btn-send" onClick={guiPhieu}>
+              <FaPaperPlane style={{ marginRight: 4 }} /> Gửi phản hồi
+            </button>
+            <button className="btn-back" onClick={() => setSelected(null)}>
+              <FaArrowLeft style={{ marginRight: 4 }} /> Quay lại
+            </button>
+          </div>
         </div>
       )}
     </div>

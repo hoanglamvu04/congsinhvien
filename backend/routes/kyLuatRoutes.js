@@ -1,6 +1,6 @@
 import express from "express";
 import { verifyToken } from "../middleware/verifyToken.js";
-import { isAdmin } from "../middleware/roleCheck.js";
+import { isAdmin, isPDTOrAdmin } from "../middleware/roleCheck.js";
 import {
   getAllKyLuat,
   createKyLuat,
@@ -10,16 +10,9 @@ import {
 
 const router = express.Router();
 
-// 📘 Lấy danh sách (Admin hoặc SV)
 router.get("/", verifyToken, getAllKyLuat);
-
-// ➕ Thêm (Admin)
-router.post("/", verifyToken, isAdmin, createKyLuat);
-
-// ✏️ Cập nhật (Admin)
-router.put("/:id_ky_luat", verifyToken, isAdmin, updateKyLuat);
-
-// 🗑️ Xóa (Admin)
-router.delete("/:id_ky_luat", verifyToken, isAdmin, deleteKyLuat);
+router.post("/", verifyToken, isPDTOrAdmin, createKyLuat);
+router.put("/:id_ky_luat", verifyToken, isPDTOrAdmin, updateKyLuat);
+router.delete("/:id_ky_luat", verifyToken, isPDTOrAdmin, deleteKyLuat);
 
 export default router;

@@ -1,0 +1,141 @@
+/* ===== Hồ sơ sinh viên ===== */
+.profile-container {
+  max-width: 1000px;
+  margin: 50px auto;
+  background-color: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+  padding: 30px 40px;
+  animation: fadeIn 0.4s ease;
+}
+
+/* Header */
+.profile-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-bottom: 3px solid #004d99;
+  padding-bottom: 10px;
+  margin-bottom: 25px;
+}
+
+.profile-header h2 {
+  color: #002b80;
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.profile-icon {
+  color: #004d99;
+  font-size: 28px;
+}
+
+/* Card layout */
+.profile-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 40px;
+  flex-wrap: wrap;
+}
+
+/* Left side */
+.profile-left {
+  flex: 1 1 250px;
+  text-align: center;
+  background: linear-gradient(135deg, #004080, #0059b3);
+  color: #fff;
+  padding: 20px;
+  border-radius: 10px;
+}
+
+.profile-avatar {
+  width: 130px;
+  height: 130px;
+  border-radius: 50%;
+  border: 4px solid #fff;
+  object-fit: cover;
+  margin-bottom: 15px;
+}
+
+.profile-left h3 {
+  font-size: 20px;
+  font-weight: 600;
+  margin: 8px 0;
+}
+
+.student-id {
+  font-size: 15px;
+  color: #ffcc00;
+}
+
+.student-status {
+  font-size: 15px;
+  background: rgba(255,255,255,0.2);
+  padding: 6px 10px;
+  border-radius: 6px;
+  display: inline-block;
+  margin-top: 8px;
+}
+
+/* Right side info grid */
+.profile-right {
+  flex: 2 1 500px;
+}
+
+.info-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px 25px;
+}
+
+.info-item {
+  display: flex;
+  flex-direction: column;
+  background-color: #f9fbff;
+  border: 1px solid #e0e6f5;
+  border-radius: 8px;
+  padding: 10px 14px;
+  transition: all 0.3s ease;
+}
+
+.info-item:hover {
+  box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+  transform: translateY(-2px);
+}
+
+.info-item .label {
+  color: #004080;
+  font-weight: 600;
+  font-size: 15px;
+}
+
+.info-item span:last-child {
+  color: #333;
+  margin-top: 4px;
+}
+
+.full-width {
+  grid-column: 1 / 3;
+}
+
+/* Animation */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .profile-card {
+    flex-direction: column;
+    gap: 25px;
+  }
+
+  .info-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .profile-left {
+    text-align: center;
+  }
+}

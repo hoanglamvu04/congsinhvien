@@ -1,0 +1,86 @@
+.lichday-container {
+  background: white;
+  border-radius: 10px;
+  padding: 20px;
+  box-shadow: 0 0 8px rgba(0,0,0,0.1);
+}
+
+h2 {
+  margin-bottom: 20px;
+  color: #003366;
+}
+
+.filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.filter-item {
+  display: flex;
+  flex-direction: column;
+}
+
+.filter-item label {
+  font-size: 0.9rem;
+  color: #333;
+  margin-bottom: 3px;
+}
+
+.filter-item input {
+  padding: 5px 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  width: 140px;
+}
+
+.btn-filter, .btn-reset {
+  padding: 6px 12px;
+  border: none;
+  cursor: pointer;
+  border-radius: 5px;
+  font-weight: 600;
+}
+
+.btn-filter {
+  background-color: #0077cc;
+  color: white;
+}
+
+.btn-reset {
+  background-color: #ccc;
+}
+
+.lichday-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+}
+
+.lichday-table th, .lichday-table td {
+  border: 1px solid #ddd;
+  padding: 8px;
+  text-align: center;
+}
+
+.lichday-table th {
+  background: #003366;
+  color: white;
+}
+
+.tag {
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  color: white;
+}
+
+.tag-green {
+  background-color: #28a745;
+}
+
+.tag-gray {
+  background-color: #6c757d;
+}
