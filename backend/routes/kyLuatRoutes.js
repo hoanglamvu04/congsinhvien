@@ -6,11 +6,13 @@ import {
   createKyLuat,
   updateKyLuat,
   deleteKyLuat,
+  getKyLuatBySinhVien
 } from "../controllers/kyLuatController.js";
 
 const router = express.Router();
 
 router.get("/", verifyToken, getAllKyLuat);
+router.get("/sinhvien/:id", verifyToken, getKyLuatBySinhVien);
 router.post("/", verifyToken, isPDTOrAdmin, createKyLuat);
 router.put("/:id_ky_luat", verifyToken, isPDTOrAdmin, updateKyLuat);
 router.delete("/:id_ky_luat", verifyToken, isPDTOrAdmin, deleteKyLuat);

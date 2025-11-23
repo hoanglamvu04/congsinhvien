@@ -42,7 +42,22 @@ export const getAllKhenThuong = async (req, res) => {
     res.status(500).json({ error: "Lỗi khi lấy danh sách khen thưởng" });
   }
 };
+export const getKhenThuongBySinhVien = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const [rows] = await pool.query(`
+      SELECT kt.*
+      FROM khen_thuong kt
+      WHERE kt.ma_sinh_vien = ?
+      ORDER BY kt.ngay_khen_thuong DESC
+    `, [id]);
 
+    res.json(rows);
+  } catch (error) {
+    console.error("❌ Lỗi khi lấy khen thưởng:", error);
+    res.status(500).json({ error: "Không thể lấy thông tin khen thưởng" });
+  }
+};
 /**
  * ➕ Thêm khen thưởng (Admin)
  */

@@ -1,20 +1,22 @@
 import express from "express";
 import { verifyToken } from "../middleware/verifyToken.js";
-import { isAdmin } from "../middleware/roleCheck.js";
+import { isAdmin, isPDTOrAdmin } from "../middleware/roleCheck.js";
 import {
   getAllHocPhi,
+  getHocPhiByHocKy,
   createHocPhi,
   updateHocPhi,
   deleteHocPhi,
-  getHocPhiBySinhVien,
+  getThongKeHocPhi
 } from "../controllers/hocPhiController.js";
 
 const router = express.Router();
 
 router.get("/", verifyToken, getAllHocPhi);
-router.get("/me", verifyToken, getHocPhiBySinhVien);
+router.get("/thongke", verifyToken, isPDTOrAdmin, getThongKeHocPhi);
+router.get("/:ma_hoc_ky", verifyToken, getHocPhiByHocKy);
 router.post("/", verifyToken, isAdmin, createHocPhi);
-router.put("/:ma_sinh_vien/:ma_hoc_ky", verifyToken, isAdmin, updateHocPhi);
-router.delete("/:ma_sinh_vien/:ma_hoc_ky", verifyToken, isAdmin, deleteHocPhi);
+router.put("/:id_hoc_phi", verifyToken, isAdmin, updateHocPhi);
+router.delete("/:id_hoc_phi", verifyToken, isAdmin, deleteHocPhi);
 
 export default router;

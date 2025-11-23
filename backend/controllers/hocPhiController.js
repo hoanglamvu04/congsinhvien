@@ -1,121 +1,67 @@
 import pool from "../config/db.js";
 
 /**
- * 📘 Lấy danh sách học phí (có tìm kiếm)
- * Admin có thể tìm theo mã sinh viên / học kỳ / trạng thái
- * Sinh viên chỉ thấy học phí của chính mình
+ * 📘 Lấy toàn bộ danh sách học phí theo học kỳ
  */
 export const getAllHocPhi = async (req, res) => {
   try {
-    const user = req.user;
-    const isAdmin = user.role === "admin";
-    const { q = "" } = req.query;
-    const keyword = `%${q}%`;
-
-    let sql = `
-      SELECT hp.*, hk.ten_hoc_ky
+    const [rows] = await pool.query(`
+      SELECT hp.*, hk.ten_hoc_ky 
       FROM hoc_phi hp
       JOIN hoc_ky hk ON hp.ma_hoc_ky = hk.ma_hoc_ky
-    `;
-    const params = [];
-
-    if (isAdmin) {
-      sql += `
-        WHERE hp.ma_sinh_vien LIKE ?
-           OR hp.ma_hoc_ky LIKE ?
-           OR hp.trang_thai LIKE ?
-      `;
-      params.push(keyword, keyword, keyword);
-    } else {
-      // Sinh viên chỉ xem của chính mình
-      sql += " WHERE hp.ma_sinh_vien = ?";
-      params.push(user.ma_sinh_vien);
-    }
-
-    sql += " ORDER BY hk.ten_hoc_ky DESC";
-
-    const [rows] = await pool.query(sql, params);
+      ORDER BY hk.ten_hoc_ky DESC
+    `);
     res.json({ data: rows });
   } catch (error) {
     console.error("[getAllHocPhi]", error);
     res.status(500).json({ error: "Lỗi khi lấy danh sách học phí" });
   }
 };
-// 📘 Sinh viên xem học phí của chính mình
-export const getHocPhiBySinhVien = async (req, res) => {
+
+/**
+ * 📘 Lấy học phí theo mã học kỳ
+ */
+export const getHocPhiByHocKy = async (req, res) => {
   try {
-    const userId = req.user.id; // id_tai_khoan lấy từ token
-
-    // Lấy mã sinh viên
-    const [svRows] = await pool.query(
-      "SELECT ma_sinh_vien FROM sinh_vien WHERE id_tai_khoan = ?",
-      [userId]
-    );
-
-    if (svRows.length === 0)
-      return res.status(404).json({ message: "Không tìm thấy sinh viên." });
-
-    const ma_sinh_vien = svRows[0].ma_sinh_vien;
-
-    // Truy vấn danh sách học phí
+    const { ma_hoc_ky } = req.params;
     const [rows] = await pool.query(
-      `
-      SELECT hp.*, hk.ten_hoc_ky
-      FROM hoc_phi hp
-      JOIN hoc_ky hk ON hp.ma_hoc_ky = hk.ma_hoc_ky
-      WHERE hp.ma_sinh_vien = ?
-      ORDER BY hk.ten_hoc_ky DESC
-      `,
-      [ma_sinh_vien]
+      "SELECT * FROM hoc_phi WHERE ma_hoc_ky = ?",
+      [ma_hoc_ky]
     );
-
-    res.json({ data: rows });
+    if (rows.length === 0)
+      return res.status(404).json({ error: "Không tìm thấy học phí học kỳ này" });
+    res.json(rows[0]);
   } catch (error) {
-    console.error("[getHocPhiBySinhVien]", error);
-    res.status(500).json({ error: "Lỗi khi lấy học phí của sinh viên" });
+    console.error("[getHocPhiByHocKy]", error);
+    res.status(500).json({ error: "Lỗi khi lấy học phí học kỳ" });
   }
 };
 
 /**
- * ➕ Thêm học phí
+ * ➕ Thêm mới học phí cho học kỳ
  */
 export const createHocPhi = async (req, res) => {
   try {
-    const {
-      ma_sinh_vien,
-      ma_hoc_ky,
-      tong_tien_phai_nop,
-      tong_tien_da_nop,
-      con_no,
-      trang_thai,
-    } = req.body;
+    const { ma_hoc_ky, tong_tien_phai_nop, han_nop, ghi_chu } = req.body;
 
-    if (!ma_sinh_vien || !ma_hoc_ky)
+    if (!ma_hoc_ky || !tong_tien_phai_nop)
       return res.status(400).json({ error: "Thiếu thông tin bắt buộc" });
 
-    // Kiểm tra trùng
+    // Kiểm tra trùng học kỳ
     const [exist] = await pool.query(
-      "SELECT 1 FROM hoc_phi WHERE ma_sinh_vien=? AND ma_hoc_ky=?",
-      [ma_sinh_vien, ma_hoc_ky]
+      "SELECT 1 FROM hoc_phi WHERE ma_hoc_ky = ?",
+      [ma_hoc_ky]
     );
     if (exist.length)
       return res.status(409).json({ error: "Học phí học kỳ này đã tồn tại" });
 
     await pool.query(
-      `INSERT INTO hoc_phi
-       (ma_sinh_vien, ma_hoc_ky, tong_tien_phai_nop, tong_tien_da_nop, con_no, trang_thai)
-       VALUES (?, ?, ?, ?, ?, ?)`,
-      [
-        ma_sinh_vien,
-        ma_hoc_ky,
-        tong_tien_phai_nop,
-        tong_tien_da_nop,
-        con_no,
-        trang_thai,
-      ]
+      `INSERT INTO hoc_phi (ma_hoc_ky, tong_tien_phai_nop, han_nop, ghi_chu, trang_thai)
+       VALUES (?, ?, ?, ?, 'ap_dung')`,
+      [ma_hoc_ky, tong_tien_phai_nop, han_nop, ghi_chu]
     );
 
-    res.status(201).json({ message: "Thêm học phí thành công" });
+    res.status(201).json({ message: "✅ Thêm học phí thành công" });
   } catch (error) {
     console.error("[createHocPhi]", error);
     res.status(500).json({ error: "Lỗi khi thêm học phí" });
@@ -123,40 +69,28 @@ export const createHocPhi = async (req, res) => {
 };
 
 /**
- * ✏️ Cập nhật học phí
+ * ✏️ Cập nhật thông tin học phí
  */
 export const updateHocPhi = async (req, res) => {
   try {
-    const { ma_sinh_vien, ma_hoc_ky } = req.params;
-    const {
-      tong_tien_phai_nop,
-      tong_tien_da_nop,
-      con_no,
-      trang_thai,
-    } = req.body;
+    const { id_hoc_phi } = req.params;
+    const { tong_tien_phai_nop, han_nop, ghi_chu, trang_thai } = req.body;
 
     const [exist] = await pool.query(
-      "SELECT * FROM hoc_phi WHERE ma_sinh_vien=? AND ma_hoc_ky=?",
-      [ma_sinh_vien, ma_hoc_ky]
+      "SELECT * FROM hoc_phi WHERE id_hoc_phi = ?",
+      [id_hoc_phi]
     );
     if (!exist.length)
-      return res.status(404).json({ error: "Không tìm thấy bản ghi học phí" });
+      return res.status(404).json({ error: "Không tìm thấy học phí cần cập nhật" });
 
     await pool.query(
       `UPDATE hoc_phi
-       SET tong_tien_phai_nop=?, tong_tien_da_nop=?, con_no=?, trang_thai=?
-       WHERE ma_sinh_vien=? AND ma_hoc_ky=?`,
-      [
-        tong_tien_phai_nop,
-        tong_tien_da_nop,
-        con_no,
-        trang_thai,
-        ma_sinh_vien,
-        ma_hoc_ky,
-      ]
+       SET tong_tien_phai_nop=?, han_nop=?, ghi_chu=?, trang_thai=?
+       WHERE id_hoc_phi=?`,
+      [tong_tien_phai_nop, han_nop, ghi_chu, trang_thai, id_hoc_phi]
     );
 
-    res.json({ message: "Cập nhật học phí thành công" });
+    res.json({ message: "✅ Cập nhật học phí thành công" });
   } catch (error) {
     console.error("[updateHocPhi]", error);
     res.status(500).json({ error: "Lỗi khi cập nhật học phí" });
@@ -168,17 +102,49 @@ export const updateHocPhi = async (req, res) => {
  */
 export const deleteHocPhi = async (req, res) => {
   try {
-    const { ma_sinh_vien, ma_hoc_ky } = req.params;
-
-    await pool.query(
-      "DELETE FROM hoc_phi WHERE ma_sinh_vien=? AND ma_hoc_ky=?",
-      [ma_sinh_vien, ma_hoc_ky]
-    );
-    res.json({ message: "Xóa học phí thành công" });
+    const { id_hoc_phi } = req.params;
+    await pool.query("DELETE FROM hoc_phi WHERE id_hoc_phi = ?", [id_hoc_phi]);
+    res.json({ message: "🗑️ Xóa học phí thành công" });
   } catch (error) {
     console.error("[deleteHocPhi]", error);
-    if (error.code === "ER_ROW_IS_REFERENCED_2")
-      return res.status(409).json({ error: "Không thể xóa do dữ liệu liên quan" });
+    if (error.code === "ER_ROW_IS_REFERENCED_2") {
+      return res.status(409).json({
+        error: "Không thể xóa vì đang có giao dịch liên quan đến học phí này",
+      });
+    }
     res.status(500).json({ error: "Lỗi khi xóa học phí" });
+  }
+};
+
+/**
+ * 📊 Thống kê học phí sinh viên (từ bảng giao_dich_hoc_phi)
+ */
+export const getThongKeHocPhi = async (req, res) => {
+  try {
+    const [rows] = await pool.query(`
+      SELECT 
+        sv.ma_sinh_vien,
+        sv.ho_ten,
+        hk.ten_hoc_ky,
+        hp.tong_tien_phai_nop,
+        IFNULL(SUM(gd.so_tien_nop), 0) AS tong_tien_da_nop,
+        (hp.tong_tien_phai_nop - IFNULL(SUM(gd.so_tien_nop), 0)) AS con_no,
+        CASE 
+          WHEN SUM(gd.so_tien_nop) >= hp.tong_tien_phai_nop THEN 'Đã hoàn thành'
+          WHEN SUM(gd.so_tien_nop) > 0 THEN 'Còn nợ'
+          ELSE 'Chưa nộp'
+        END AS trang_thai
+      FROM hoc_phi hp
+      JOIN hoc_ky hk ON hp.ma_hoc_ky = hk.ma_hoc_ky
+      LEFT JOIN giao_dich_hoc_phi gd ON hp.id_hoc_phi = gd.id_hoc_phi
+      LEFT JOIN sinh_vien sv ON gd.ma_sinh_vien = sv.ma_sinh_vien
+      GROUP BY sv.ma_sinh_vien, hp.id_hoc_phi
+      ORDER BY hk.ten_hoc_ky DESC
+    `);
+
+    res.json({ data: rows });
+  } catch (error) {
+    console.error("[getThongKeHocPhi]", error);
+    res.status(500).json({ error: "Lỗi khi thống kê học phí" });
   }
 };

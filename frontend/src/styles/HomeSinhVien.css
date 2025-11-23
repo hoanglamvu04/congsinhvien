@@ -1,0 +1,189 @@
+/* ===================== DASHBOARD CONTAINER ===================== */
+.sv-dashboard {
+  padding: 20px 25px;
+  max-width: 1200px;
+  margin: auto;
+  font-family: "Inter", sans-serif;
+}
+
+/* ===================== WELCOME BOX ===================== */
+.sv-welcome-box {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-radius: 20px;
+  padding: 25px 30px;
+background: linear-gradient(135deg, #4A90E2, #357ABD);
+  color: white;
+  margin-bottom: 25px;
+  min-height: 180px;
+}
+
+/* LEFT AREA */
+.sv-welcome-left {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+}
+
+/* Avatar */
+.sv-avatar {
+  width: 90px;
+  height: 90px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid white;
+}
+
+/* Text */
+.sv-welcome-left h2 {
+  font-size: 24px;
+  margin-bottom: 5px;
+  font-weight: 700;
+}
+.sv-welcome-left p {
+  margin: 2px 0;
+  font-size: 14px;
+  opacity: 0.95;
+}
+
+/* ===================== STUDY STATS ===================== */
+.sv-study-stats {
+  margin-top: 12px;
+  display: grid;
+  grid-template-columns: repeat(2, 150px);
+  gap: 10px 20px;
+}
+
+.stat-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.stat-icon {
+  font-size: 18px;
+  color: white;
+}
+
+.stat-item .label {
+  font-size: 11px;
+  opacity: 0.85;
+}
+.stat-item .value {
+  font-size: 15px;
+  font-weight: bold;
+}
+
+/* ===================== RIGHT MINI TAGS ===================== */
+.sv-welcome-info-vertical {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 220px;
+}
+
+.info-tag {
+  background: #ffffffee;
+  color: #003d9f;
+  padding: 10px 15px;
+  border-radius: 12px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+.info-tag .label {
+  font-size: 12px;
+  opacity: 0.7;
+}
+.info-tag .value {
+  font-size: 14px;
+  font-weight: bold;
+}
+
+/* ===================== 3 CARD GRID ===================== */
+.sv-grid {
+  margin-top: 20px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 25px;
+}
+
+/* ===================== CARD ===================== */
+.sv-card {
+  background: white;
+  padding: 20px 25px;
+  border-radius: 16px;
+  box-shadow: 0 3px 10px rgba(0,0,0,0.08);
+  transition: 0.2s;
+}
+
+.sv-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 5px 15px rgba(0,0,0,0.12);
+}
+
+.sv-card h3 {
+  margin-bottom: 12px;
+  font-size: 18px;
+  color: #003d9f;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ===================== QUICK BUTTONS ===================== */
+.quick-btn {
+  display: block;
+  padding: 10px 15px;
+  margin: 8px 0;
+  background: #e8f0ff;
+  color: #003d9f;
+  border-radius: 10px;
+  text-decoration: none;
+  font-weight: 600;
+  transition: 0.2s;
+}
+
+.quick-btn:hover {
+  background: #d6e4ff;
+}
+
+/* ===================== LINK STYLE ===================== */
+.sv-link {
+  margin-top: 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  text-decoration: none;
+  color: #0057ff;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.sv-link:hover {
+  text-decoration: underline;
+}
+
+/* ===================== RESPONSIVE ===================== */
+@media (max-width: 900px) {
+  .sv-welcome-box {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 20px;
+    padding: 25px;
+  }
+
+  .sv-welcome-info-vertical {
+    width: 100%;
+    flex-direction: row;
+    justify-content: space-between;
+  }
+
+  .info-tag {
+    flex: 1;
+  }
+
+  .sv-grid {
+    grid-template-columns: 1fr;
+  }
+}

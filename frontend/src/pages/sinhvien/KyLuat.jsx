@@ -7,13 +7,15 @@ import {
   FaGavel,
   FaCalendarAlt,
   FaRegClock,
+  FaRedoAlt,
 } from "react-icons/fa";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 import "../../styles/KyLuat.css";
 
 const API_URL = process.env.REACT_APP_API_URL || "http://localhost:5000";
 
 const KyLuat = () => {
-  const token = localStorage.getItem("token");
   const [dsKyLuat, setDsKyLuat] = useState([]);
   const [keyword, setKeyword] = useState("");
   const [loading, setLoading] = useState(true);
@@ -22,12 +24,12 @@ const KyLuat = () => {
   const fetchKyLuat = async (q = "") => {
     try {
       const res = await axios.get(`${API_URL}/api/kyluat?q=${q}`, {
-        headers: { Authorization: `Bearer ${token}` },
+        withCredentials: true,
       });
       setDsKyLuat(res.data.data || []);
     } catch (err) {
-      console.error("❌ Lỗi khi tải kỷ luật:", err);
-      alert("Không thể tải danh sách kỷ luật!");
+      console.error("❌ Lỗi khi tải danh sách kỷ luật:", err);
+      toast.error("Không thể tải danh sách kỷ luật!");
     } finally {
       setLoading(false);
     }
@@ -35,7 +37,7 @@ const KyLuat = () => {
 
   useEffect(() => {
     fetchKyLuat();
-  }, [token]);
+  }, []);
 
   // 🔍 Tìm kiếm
   const handleSearch = (e) => {
@@ -43,8 +45,16 @@ const KyLuat = () => {
     fetchKyLuat(keyword.trim());
   };
 
+  // 🔄 Làm mới
+  const handleReset = () => {
+    setKeyword("");
+    fetchKyLuat();
+  };
+
   return (
     <div className="page-container">
+      <ToastContainer position="top-center" autoClose={2000} />
+
       {/* Tiêu đề */}
       <div className="kyluat-header">
         <h2>
@@ -57,12 +67,15 @@ const KyLuat = () => {
       <form onSubmit={handleSearch} className="search-box">
         <input
           type="text"
-          placeholder="Tìm kiếm theo lý do, hình thức, người ra quyết định..."
+          placeholder="Tìm kiếm theo lý do, hình thức hoặc người ra quyết định..."
           value={keyword}
           onChange={(e) => setKeyword(e.target.value)}
         />
         <button type="submit">
           <FaSearch style={{ marginRight: 5 }} /> Tìm
+        </button>
+        <button type="button" className="btn-reset" onClick={handleReset}>
+          <FaRedoAlt style={{ marginRight: 5 }} /> Làm mới
         </button>
       </form>
 
@@ -74,43 +87,45 @@ const KyLuat = () => {
       ) : dsKyLuat.length === 0 ? (
         <p className="no-data">✅ Bạn chưa có quyết định kỷ luật nào.</p>
       ) : (
-        <table className="data-table">
-          <thead>
-            <tr>
-              <th>#</th>
-              <th>
-                <FaCalendarAlt style={{ marginRight: 5, color: "#007bff" }} />
-                Ngày quyết định
-              </th>
-              <th>
-                <FaGavel style={{ marginRight: 5, color: "#ff9800" }} />
-                Hình thức
-              </th>
-              <th>Lý do</th>
-              <th>
-                <FaUserTie style={{ marginRight: 5, color: "#004080" }} />
-                Người ra quyết định
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {dsKyLuat.map((kl, i) => (
-              <tr key={kl.id_ky_luat}>
-                <td>{i + 1}</td>
-                <td>
-                  {new Date(kl.ngay_quyet_dinh).toLocaleDateString("vi-VN", {
-                    day: "2-digit",
-                    month: "2-digit",
-                    year: "numeric",
-                  })}
-                </td>
-                <td className="warn">{kl.hinh_thuc}</td>
-                <td>{kl.ly_do || "—"}</td>
-                <td>{kl.nguoi_ra_quyet_dinh || "—"}</td>
+        <div className="table-wrapper">
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>
+                  <FaCalendarAlt style={{ marginRight: 5, color: "#007bff" }} />
+                  Ngày quyết định
+                </th>
+                <th>
+                  <FaGavel style={{ marginRight: 5, color: "#ff9800" }} />
+                  Hình thức
+                </th>
+                <th>Lý do</th>
+                <th>
+                  <FaUserTie style={{ marginRight: 5, color: "#004080" }} />
+                  Người ra quyết định
+                </th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {dsKyLuat.map((kl, i) => (
+                <tr key={kl.id_ky_luat}>
+                  <td>{i + 1}</td>
+                  <td>
+                    {new Date(kl.ngay_quyet_dinh).toLocaleDateString("vi-VN", {
+                      day: "2-digit",
+                      month: "2-digit",
+                      year: "numeric",
+                    })}
+                  </td>
+                  <td className="warn">{kl.hinh_thuc}</td>
+                  <td>{kl.ly_do || "—"}</td>
+                  <td>{kl.nguoi_ra_quyet_dinh || "—"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
     </div>
   );

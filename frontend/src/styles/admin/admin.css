@@ -130,7 +130,6 @@
 }
 .admin-container {
   display: flex;
-  min-height: 100vh;
 }
 
 .admin-sidebar {
@@ -167,7 +166,6 @@
 /* ✅ Sidebar toggle */
 .admin-container {
   display: flex;
-  min-height: 100vh;
   transition: all 0.3s ease;
 }
 
@@ -368,3 +366,4 @@
 .data-table th {
   background: #f3f4f6;
 }
+

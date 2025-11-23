@@ -1,6 +1,7 @@
 import pool from "../config/db.js";
 import fs from "fs-extra";
 import path from "path";
+import bcrypt from "bcryptjs";
 
 // 🧠 Hàm tạo đường dẫn thư mục ảnh tự động
 const getStudentDir = (tenKhoa, tenNganh, tenLop, maSinhVien) => {
@@ -8,22 +9,50 @@ const getStudentDir = (tenKhoa, tenNganh, tenLop, maSinhVien) => {
   return path.join(base, tenKhoa, tenNganh, tenLop, maSinhVien);
 };
 
-// 📘 Lấy danh sách sinh viên
+// 📘 Lấy danh sách sinh viên (hỗ trợ phân trang + lọc)
 export const getAllSinhVien = async (req, res) => {
   try {
-    const [rows] = await pool.query(`
-      SELECT sv.*, l.ten_lop, n.ten_nganh, k.ten_khoa 
+    const { page = 1, limit = 10, ma_khoa, ma_lop, keyword } = req.query;
+    const offset = (page - 1) * limit;
+
+    let sql = `
+      SELECT SQL_CALC_FOUND_ROWS sv.*, l.ten_lop, n.ten_nganh, k.ten_khoa
       FROM sinh_vien sv
       LEFT JOIN lop l ON sv.ma_lop = l.ma_lop
       LEFT JOIN nganh n ON sv.ma_nganh = n.ma_nganh
       LEFT JOIN khoa k ON sv.ma_khoa = k.ma_khoa
-    `);
-    res.json(rows);
+      WHERE 1=1
+    `;
+    const params = [];
+
+    if (ma_khoa) {
+      sql += " AND sv.ma_khoa = ?";
+      params.push(ma_khoa);
+    }
+
+    if (ma_lop) {
+      sql += " AND sv.ma_lop = ?";
+      params.push(ma_lop);
+    }
+
+    if (keyword) {
+      sql += " AND (sv.ho_ten LIKE ? OR sv.ma_sinh_vien LIKE ?)";
+      params.push(`%${keyword}%`, `%${keyword}%`);
+    }
+
+    sql += " LIMIT ? OFFSET ?";
+    params.push(Number(limit), Number(offset));
+
+    const [rows] = await pool.query(sql, params);
+    const [[{ "FOUND_ROWS()": total }]] = await pool.query("SELECT FOUND_ROWS()");
+
+    res.json({ data: rows, total }); // ✅ Chuẩn cấu trúc phân trang
   } catch (error) {
-    console.error(error);
+    console.error("❌ Lỗi khi lấy danh sách sinh viên:", error);
     res.status(500).json({ error: "Lỗi khi lấy danh sách sinh viên" });
   }
 };
+
 
 // 📘 Lấy thông tin sinh viên theo token
 export const getSinhVienByToken = async (req, res) => {
@@ -51,7 +80,7 @@ export const getSinhVienByToken = async (req, res) => {
     res.status(500).json({ error: "Lỗi khi lấy sinh viên." });
   }
 };
-// 📘 Lấy thông tin sinh viên theo tên đăng nhập (cho người khác xem)
+
 // 📘 Lấy sinh viên theo tên đăng nhập (cho chat)
 export const getSinhVienByUsername = async (req, res) => {
   try {
@@ -78,14 +107,108 @@ export const getSinhVienByUsername = async (req, res) => {
     res.status(500).json({ error: "Lỗi khi lấy sinh viên theo username" });
   }
 };
+// 📘 Lấy chi tiết sinh viên theo mã
+export const getSinhVienById = async (req, res) => {
+  try {
+    const { id } = req.params;
 
+    const [rows] = await pool.query(
+      `
+      SELECT sv.*, l.ten_lop, n.ten_nganh, k.ten_khoa
+      FROM sinh_vien sv
+      LEFT JOIN lop l ON sv.ma_lop = l.ma_lop
+      LEFT JOIN nganh n ON sv.ma_nganh = n.ma_nganh
+      LEFT JOIN khoa k ON sv.ma_khoa = k.ma_khoa
+      WHERE sv.ma_sinh_vien = ?
+      `,
+      [id]
+    );
 
+    if (rows.length === 0) {
+      return res.status(404).json({ error: "Không tìm thấy sinh viên" });
+    }
+
+    res.json(rows[0]);
+  } catch (error) {
+    console.error("❌ Lỗi khi lấy chi tiết sinh viên:", error);
+    res.status(500).json({ error: "Lỗi khi lấy chi tiết sinh viên" });
+  }
+};
+export const getSinhVienByLop = async (req, res) => {
+  try {
+    const { ma_lop } = req.params;
+    const [rows] = await pool.query(
+      "SELECT ma_sinh_vien, ho_ten FROM sinh_vien WHERE ma_lop = ?",
+      [ma_lop]
+    );
+    res.json({ data: rows });
+  } catch (error) {
+    console.error("❌ Lỗi khi lấy sinh viên theo lớp:", error);
+    res.status(500).json({ error: "Không thể lấy danh sách sinh viên theo lớp" });
+  }
+};
+export const getSinhVienTheoKhoa = async (req, res) => {
+  try {
+    const { page = 1, limit = 10, ma_khoa, keyword } = req.query;
+    const offset = (page - 1) * limit;
+
+    // 🧠 Lấy filter từ middleware
+    const filter = req.filter || {};
+    const params = [];
+    let sql = `
+      SELECT SQL_CALC_FOUND_ROWS
+        sv.ma_sinh_vien, sv.ho_ten, sv.email, sv.dien_thoai, sv.trang_thai_hoc_tap,
+        l.ten_lop, n.ten_nganh, k.ma_khoa, k.ten_khoa, pb.ten_phong
+      FROM sinh_vien sv
+      LEFT JOIN lop l ON sv.ma_lop = l.ma_lop
+      LEFT JOIN nganh n ON sv.ma_nganh = n.ma_nganh
+      LEFT JOIN khoa k ON sv.ma_khoa = k.ma_khoa
+      LEFT JOIN phong_ban pb ON k.ma_phong = pb.ma_phong
+      WHERE 1=1
+    `;
+
+    // 🔎 Lọc theo mã khoa nếu có
+    if (ma_khoa) {
+      sql += " AND sv.ma_khoa = ?";
+      params.push(ma_khoa);
+    }
+
+    // 🔎 Lọc theo keyword (tên hoặc mã SV)
+    if (keyword) {
+      sql += " AND (sv.ho_ten LIKE ? OR sv.ma_sinh_vien LIKE ?)";
+      params.push(`%${keyword}%`, `%${keyword}%`);
+    }
+
+    // 🏛️ Nếu không phải admin / PĐT → giới hạn theo phòng ban
+    if (!filter.all && filter.ma_phong) {
+      sql += " AND k.ma_phong = ?";
+      params.push(filter.ma_phong);
+    }
+
+    sql += " ORDER BY sv.ho_ten ASC LIMIT ? OFFSET ?";
+    params.push(Number(limit), Number(offset));
+
+    // ⚙️ Thực thi truy vấn
+    const [rows] = await pool.query(sql, params);
+    const [[{ "FOUND_ROWS()": total }]] = await pool.query("SELECT FOUND_ROWS()");
+
+    res.json({
+      total,
+      data: rows,
+      page: Number(page),
+      limit: Number(limit),
+    });
+  } catch (error) {
+    console.error("❌ Lỗi khi lấy sinh viên theo khoa:", error);
+    res.status(500).json({ error: "Lỗi khi lấy sinh viên theo khoa" });
+  }
+};
 // ➕ Thêm sinh viên
 export const createSinhVien = async (req, res) => {
+  const connection = await pool.getConnection();
   try {
     const {
       ma_sinh_vien,
-      id_tai_khoan,
       cccd,
       ho_ten,
       ngay_sinh,
@@ -102,8 +225,21 @@ export const createSinhVien = async (req, res) => {
       trang_thai_hoc_tap,
     } = req.body;
 
-    // Lấy tên khoa/ngành/lớp để tạo thư mục
-    const [[info]] = await pool.query(
+    // 🔒 Bắt đầu transaction
+    await connection.beginTransaction();
+
+    // 🧠 1️⃣ Tạo tài khoản tự động cho sinh viên
+    const tenDangNhap = ma_sinh_vien;
+    const hashedPassword = await bcrypt.hash(ma_sinh_vien, 10); // hoặc "123456"
+    const [tkResult] = await connection.query(
+      `INSERT INTO tai_khoan (ten_dang_nhap, mat_khau, vai_tro, trang_thai)
+       VALUES (?, ?, 'sinhvien', 'hoatdong')`,
+      [tenDangNhap, hashedPassword]
+    );
+    const id_tai_khoan = tkResult.insertId;
+
+    // 🧠 2️⃣ Lấy tên khoa/ngành/lớp để tạo thư mục
+    const [[info]] = await connection.query(
       `SELECT k.ten_khoa, n.ten_nganh, l.ten_lop
        FROM khoa k
        JOIN nganh n ON n.ma_khoa = k.ma_khoa
@@ -112,16 +248,16 @@ export const createSinhVien = async (req, res) => {
       [ma_lop]
     );
 
-    const folderPath = getStudentDir(
+    const folderPath = path.resolve(
+      "uploads/sinhvien",
       info.ten_khoa,
       info.ten_nganh,
       info.ten_lop,
       ma_sinh_vien
     );
+    await fs.ensureDir(folderPath);
 
-    await fs.ensureDir(folderPath); // tạo thư mục
-
-    // Nếu có file ảnh
+    // 🧠 3️⃣ Nếu có ảnh → lưu
     let fileName = null;
     if (req.file) {
       fileName = req.file.filename;
@@ -129,13 +265,14 @@ export const createSinhVien = async (req, res) => {
       await fs.move(req.file.path, filePath, { overwrite: true });
     }
 
-    await pool.query(
+    // 🧠 4️⃣ Tạo bản ghi sinh viên, gắn id_tai_khoan
+    await connection.query(
       `INSERT INTO sinh_vien 
       (ma_sinh_vien, id_tai_khoan, cccd, ho_ten, ngay_sinh, gioi_tinh, ma_lop, ma_nganh, ma_khoa, khoa_hoc, dia_chi, nguoi_giam_ho, sdt_giam_ho, dien_thoai, email, hinh_anh, trang_thai_hoc_tap)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         ma_sinh_vien,
-        id_tai_khoan || null,
+        id_tai_khoan,
         cccd,
         ho_ten,
         ngay_sinh,
@@ -149,20 +286,34 @@ export const createSinhVien = async (req, res) => {
         sdt_giam_ho || null,
         dien_thoai || null,
         email || null,
-        fileName ? `/uploads/sinhvien/${info.ten_khoa}/${info.ten_nganh}/${info.ten_lop}/${ma_sinh_vien}/${fileName}` : null,
+        fileName
+          ? `/uploads/sinhvien/${info.ten_khoa}/${info.ten_nganh}/${info.ten_lop}/${ma_sinh_vien}/${fileName}`
+          : null,
         trang_thai_hoc_tap || "danghoc",
       ]
     );
 
-    res.status(201).json({ message: "✅ Thêm sinh viên thành công" });
+    await connection.commit();
+
+    res.status(201).json({
+      message: "✅ Thêm sinh viên & tài khoản thành công",
+      data: {
+        ma_sinh_vien,
+        ten_dang_nhap: tenDangNhap,
+        mat_khau_mac_dinh: ma_sinh_vien, // để admin biết
+      },
+    });
   } catch (error) {
-    console.error(error);
+    await connection.rollback();
+    console.error("❌ Lỗi khi thêm sinh viên:", error);
     res.status(500).json({ error: "Lỗi khi thêm sinh viên" });
+  } finally {
+    connection.release();
   }
 };
 
-// ✏️ Cập nhật sinh viên
 export const updateSinhVien = async (req, res) => {
+  const connection = await pool.getConnection();
   try {
     const { ma_sinh_vien } = req.params;
     const {
@@ -182,12 +333,14 @@ export const updateSinhVien = async (req, res) => {
       trang_thai_hoc_tap,
     } = req.body;
 
+    await connection.beginTransaction();
+
     let imagePath = null;
 
-    // Nếu có upload ảnh mới
+    // 🖼️ Nếu có upload ảnh mới
     if (req.file) {
-      // 🔍 Bổ sung truy vấn để lấy thông tin lớp/khoa/ngành
-      const [[info]] = await pool.query(
+      // Lấy thông tin tên lớp, ngành, khoa
+      const [[info]] = await connection.query(
         `SELECT k.ten_khoa, n.ten_nganh, l.ten_lop
          FROM khoa k
          JOIN nganh n ON n.ma_khoa = k.ma_khoa
@@ -196,27 +349,26 @@ export const updateSinhVien = async (req, res) => {
         [ma_lop]
       );
 
-      // 📁 Dựng thư mục và di chuyển ảnh
-      const folderPath = path.join(
-        "uploads",
-        "sinhvien",
+      const folderPath = path.resolve(
+        "uploads/sinhvien",
         info.ten_khoa,
         info.ten_nganh,
         info.ten_lop,
         ma_sinh_vien
       );
-
       await fs.ensureDir(folderPath);
+
       const destPath = path.join(folderPath, req.file.filename);
       await fs.move(req.file.path, destPath, { overwrite: true });
 
-      imagePath = `/${destPath.replace(/\\/g, "/")}`;
+      // Lưu theo format nhất quán với createSinhVien
+      imagePath = `/uploads/sinhvien/${info.ten_khoa}/${info.ten_nganh}/${info.ten_lop}/${ma_sinh_vien}/${req.file.filename}`;
     }
 
-    // 🔄 Cập nhật DB
-    await pool.query(
+    // 🔄 Cập nhật sinh viên
+    await connection.query(
       `UPDATE sinh_vien 
-       SET cccd=?, ho_ten=?, ngay_sinh=?, gioi_tinh=?, ma_lop=?, ma_nganh=?, ma_khoa=?, khoa_hoc=?, dia_chi=?, nguoi_giam_ho=?, sdt_giam_ho=?, dien_thoai=?, email=?, hinh_anh=COALESCE(?, hinh_anh), trang_thai_hoc_tap=?
+       SET cccd=?, ho_ten=?, ngay_sinh=?, gioi_tinh=?, ma_lop=?, ma_nganh=?, ma_khoa=?, khoa_hoc=?, dia_chi=?, nguoi_giam_ho=?, sdt_giam_ho=?, dien_thoai=?, email=?, hinh_anh = COALESCE(?, hinh_anh), trang_thai_hoc_tap=?
        WHERE ma_sinh_vien=?`,
       [
         cccd,
@@ -226,22 +378,26 @@ export const updateSinhVien = async (req, res) => {
         ma_lop,
         ma_nganh,
         ma_khoa,
-        khoa_hoc,
-        dia_chi,
-        nguoi_giam_ho,
-        sdt_giam_ho,
-        dien_thoai,
-        email,
+        khoa_hoc || null,
+        dia_chi || null,
+        nguoi_giam_ho || null,
+        sdt_giam_ho || null,
+        dien_thoai || null,
+        email || null,
         imagePath,
-        trang_thai_hoc_tap,
+        trang_thai_hoc_tap || "danghoc",
         ma_sinh_vien,
       ]
     );
 
+    await connection.commit();
     res.json({ message: "✅ Cập nhật sinh viên thành công" });
   } catch (error) {
+    await connection.rollback();
     console.error("❌ Lỗi khi cập nhật sinh viên:", error);
     res.status(500).json({ error: "Lỗi khi cập nhật sinh viên" });
+  } finally {
+    connection.release();
   }
 };
 

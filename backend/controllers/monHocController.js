@@ -1,6 +1,6 @@
 import pool from "../config/db.js";
 
-// 📘 Lấy danh sách môn học (có tìm kiếm + join ngành)
+// 📘 Lấy danh sách môn học (Admin & phòng đào tạo)
 export const getAllMonHoc = async (req, res) => {
   try {
     const { q = "" } = req.query;
@@ -8,19 +8,71 @@ export const getAllMonHoc = async (req, res) => {
 
     const [rows] = await pool.query(
       `
-      SELECT mh.*, n.ten_nganh 
-      FROM mon_hoc mh 
+      SELECT mh.*, n.ten_nganh, k.ten_khoa
+      FROM mon_hoc mh
       LEFT JOIN nganh n ON mh.ma_nganh = n.ma_nganh
-      WHERE mh.ma_mon LIKE ? OR mh.ten_mon LIKE ? OR n.ten_nganh LIKE ?
+      LEFT JOIN khoa k ON n.ma_khoa = k.ma_khoa
+      WHERE mh.ma_mon LIKE ? OR mh.ten_mon LIKE ? OR n.ten_nganh LIKE ? OR k.ten_khoa LIKE ?
       ORDER BY mh.ma_mon ASC
       `,
-      [keyword, keyword, keyword]
+      [keyword, keyword, keyword, keyword]
     );
 
     res.json({ data: rows });
   } catch (error) {
     console.error("[getAllMonHoc]", error);
     res.status(500).json({ error: "Lỗi khi lấy danh sách môn học" });
+  }
+};
+
+// 📘 Lấy danh sách môn học theo khoa (lọc theo người đăng nhập)
+export const getMonHocTheoKhoa = async (req, res) => {
+  try {
+    const { q = "" } = req.query;
+    const keyword = `%${q}%`;
+    const { role, ma_phong } = req.user;
+
+    if (!req.user)
+      return res.status(401).json({ message: "Chưa đăng nhập" });
+
+    // Admin hoặc phòng đào tạo được xem toàn bộ
+    if (role === "admin" || req.user.ten_phong === "Phòng Đào Tạo") {
+      const [rows] = await pool.query(
+        `
+        SELECT mh.*, n.ten_nganh, k.ten_khoa
+        FROM mon_hoc mh
+        LEFT JOIN nganh n ON mh.ma_nganh = n.ma_nganh
+        LEFT JOIN khoa k ON n.ma_khoa = k.ma_khoa
+        WHERE mh.ma_mon LIKE ? OR mh.ten_mon LIKE ? OR n.ten_nganh LIKE ? OR k.ten_khoa LIKE ?
+        ORDER BY mh.ma_mon ASC
+        `,
+        [keyword, keyword, keyword, keyword]
+      );
+      return res.json({ data: rows });
+    }
+
+    // Nhân viên khoa (hoặc trưởng khoa / thư ký)
+    if (role === "nhanvien" && ma_phong) {
+      const [rows] = await pool.query(
+        `
+        SELECT mh.*, n.ten_nganh, k.ten_khoa, pb.ten_phong
+        FROM mon_hoc mh
+        LEFT JOIN nganh n ON mh.ma_nganh = n.ma_nganh
+        LEFT JOIN khoa k ON n.ma_khoa = k.ma_khoa
+        LEFT JOIN phong_ban pb ON k.ma_phong = pb.ma_phong
+        WHERE (mh.ma_mon LIKE ? OR mh.ten_mon LIKE ? OR n.ten_nganh LIKE ?)
+          AND pb.ma_phong = ?
+        ORDER BY mh.ma_mon ASC
+        `,
+        [keyword, keyword, keyword, ma_phong]
+      );
+      return res.json({ data: rows });
+    }
+
+    return res.status(403).json({ message: "Không có quyền truy cập" });
+  } catch (error) {
+    console.error("[getMonHocTheoKhoa]", error);
+    res.status(500).json({ error: "Lỗi khi lấy danh sách môn học theo khoa" });
   }
 };
 

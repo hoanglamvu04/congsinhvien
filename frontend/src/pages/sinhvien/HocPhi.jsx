@@ -10,7 +10,8 @@ import {
   FaExclamationTriangle,
   FaUniversity,
 } from "react-icons/fa";
-import { toast } from "react-toastify";
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 import "../../styles/HocPhi.css";
 
 const API_URL = process.env.REACT_APP_API_URL || "http://localhost:5000";
@@ -18,45 +19,50 @@ const API_URL = process.env.REACT_APP_API_URL || "http://localhost:5000";
 const HocPhi = () => {
   const [hocPhi, setHocPhi] = useState([]);
   const [filtered, setFiltered] = useState([]);
-  const [hocKyList, setHocKyList] = useState([]);
+  const [hocKyList, setHocKyList] = useState(["Tất cả"]);
   const [hocKyChon, setHocKyChon] = useState("Tất cả");
   const [loading, setLoading] = useState(true);
-  const token = localStorage.getItem("token");
+
+  // 🔹 Lấy dữ liệu học phí
+  const fetchHocPhi = async () => {
+    try {
+      const res = await axios.get(`${API_URL}/api/hocphi/me`, {
+        withCredentials: true,
+      });
+      const data = res.data.data || [];
+      setHocPhi(data);
+      setFiltered(data);
+      setHocKyList(["Tất cả", ...new Set(data.map((x) => x.ten_hoc_ky))]);
+    } catch (err) {
+      console.error("❌ Lỗi khi tải học phí:", err);
+      toast.error("Không thể tải danh sách học phí!");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const res = await axios.get(`${API_URL}/api/hocphi/me`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        const data = res.data.data || [];
-        setHocPhi(data);
-        setFiltered(data);
-        setHocKyList(["Tất cả", ...new Set(data.map((x) => x.ten_hoc_ky))]);
-      } catch (err) {
-        console.error(err);
-        toast.error("Không thể tải danh sách học phí!");
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
-  }, [token]);
+    fetchHocPhi();
+  }, []);
 
+  // 🔹 Lọc theo học kỳ
   const handleFilter = (value) => {
     setHocKyChon(value);
     if (value === "Tất cả") setFiltered(hocPhi);
     else setFiltered(hocPhi.filter((hp) => hp.ten_hoc_ky === value));
   };
 
+  // 🔹 Tính tổng
   const tongPhaiNop = filtered.reduce((a, b) => a + Number(b.tong_tien_phai_nop || 0), 0);
   const daNop = filtered.reduce((a, b) => a + Number(b.tong_tien_da_nop || 0), 0);
   const conNo = filtered.reduce((a, b) => a + Number(b.con_no || 0), 0);
 
-  if (loading) return <p className="loading">⏳ Đang tải học phí...</p>;
+  if (loading)
+    return <p className="loading">⏳ Đang tải học phí...</p>;
 
   return (
     <div className="hocphi-page">
+      <ToastContainer position="top-center" autoClose={2500} />
       <div className="hocphi-header">
         <FaUniversity className="icon" />
         <h2>Học phí cá nhân</h2>
@@ -123,14 +129,15 @@ const HocPhi = () => {
                   <td>{hp.tong_tien_da_nop?.toLocaleString("vi-VN")} ₫</td>
                   <td
                     style={{
-                      color: hp.con_no > 0 ? "red" : hp.con_no < 0 ? "green" : "#000",
+                      color: hp.con_no > 0 ? "red" : hp.con_no < 0 ? "green" : "#333",
+                      fontWeight: 500,
                     }}
                   >
                     {hp.con_no > 0
-                      ? `${hp.con_no.toLocaleString("vi-VN")} ₫`
+                      ? `-${hp.con_no.toLocaleString("vi-VN")} ₫`
                       : hp.con_no < 0
-                        ? `+${Math.abs(hp.con_no).toLocaleString("vi-VN")} ₫`
-                        : "0 ₫"}
+                      ? `+${Math.abs(hp.con_no).toLocaleString("vi-VN")} ₫`
+                      : "0 ₫"}
                   </td>
                   <td>
                     {hp.trang_thai === "chuadong" && (

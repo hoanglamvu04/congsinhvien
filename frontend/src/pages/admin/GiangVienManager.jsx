@@ -8,7 +8,6 @@ const GiangVienManager = () => {
   const [giangVienList, setGiangVienList] = useState([]);
   const [khoaList, setKhoaList] = useState([]);
   const [keyword, setKeyword] = useState("");
-  const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({
     ma_giang_vien: "",
     ho_ten: "",
@@ -20,59 +19,58 @@ const GiangVienManager = () => {
     anh_dai_dien: "",
   });
   const [editing, setEditing] = useState(null);
-  const token = localStorage.getItem("token");
 
-  // 🔄 Lấy danh sách giảng viên
+  // 🔹 Lấy danh sách giảng viên
   const fetchGiangVien = async () => {
     try {
-      setLoading(true);
       const res = await axios.get(`${API_URL}/api/giangvien`, {
-        headers: { Authorization: `Bearer ${token}` },
+        withCredentials: true, // ✅ Cookie JWT tự động gửi
         params: { q: keyword },
       });
       setGiangVienList(res.data.data || []);
     } catch (err) {
-      console.error(err);
-      alert("Lỗi khi tải danh sách giảng viên!");
-    } finally {
-      setLoading(false);
+      console.error("❌ Lỗi khi tải danh sách giảng viên:", err);
+      alert("Không thể tải danh sách giảng viên!");
     }
   };
 
-  // 📚 Lấy danh sách khoa
+  // 🔹 Lấy danh sách khoa
   const fetchKhoa = async () => {
     try {
       const res = await axios.get(`${API_URL}/api/khoa`, {
-        headers: { Authorization: `Bearer ${token}` },
+        withCredentials: true,
       });
       setKhoaList(res.data.data || res.data);
-    } catch {
-      console.warn("Không thể tải danh sách khoa");
+    } catch (err) {
+      console.error("⚠️ Không thể tải danh sách khoa:", err);
     }
   };
 
   useEffect(() => {
     fetchKhoa();
     fetchGiangVien();
+    // eslint-disable-next-line
   }, [keyword]);
 
-  // ➕ Thêm / sửa giảng viên
-  const handleSubmit = async (e) => {
+  // 🔹 Thêm hoặc cập nhật giảng viên
+  const handleUpsert = async (e) => {
     e.preventDefault();
     if (!form.ma_giang_vien || !form.ho_ten || !form.ma_khoa)
-      return alert("Điền đủ Mã giảng viên, Họ tên, Khoa!");
+      return alert("⚠️ Điền đầy đủ Mã giảng viên, Họ tên, và Khoa!");
+
     try {
       if (editing) {
         await axios.put(`${API_URL}/api/giangvien/${editing}`, form, {
-          headers: { Authorization: `Bearer ${token}` },
+          withCredentials: true,
         });
         alert("✅ Cập nhật giảng viên thành công!");
       } else {
         await axios.post(`${API_URL}/api/giangvien`, form, {
-          headers: { Authorization: `Bearer ${token}` },
+          withCredentials: true,
         });
         alert("✅ Thêm giảng viên thành công!");
       }
+
       setForm({
         ma_giang_vien: "",
         ho_ten: "",
@@ -86,12 +84,12 @@ const GiangVienManager = () => {
       setEditing(null);
       fetchGiangVien();
     } catch (err) {
-      console.error(err);
-      alert(err.response?.data?.error || "Lỗi khi lưu giảng viên!");
+      console.error("❌ Lỗi khi lưu giảng viên:", err);
+      alert(err.response?.data?.error || "Không thể lưu giảng viên!");
     }
   };
 
-  // ✏️ Sửa
+  // ✏️ Sửa giảng viên
   const handleEdit = (item) => {
     setEditing(item.ma_giang_vien);
     setForm({
@@ -106,43 +104,53 @@ const GiangVienManager = () => {
     });
   };
 
-  // 🗑️ Xóa
+  // 🗑️ Xóa giảng viên
   const handleDelete = async (ma_giang_vien) => {
     if (!window.confirm("Bạn có chắc muốn xóa giảng viên này không?")) return;
     try {
       await axios.delete(`${API_URL}/api/giangvien/${ma_giang_vien}`, {
-        headers: { Authorization: `Bearer ${token}` },
+        withCredentials: true,
       });
-      alert("✅ Đã xóa giảng viên!");
+      alert("🗑️ Đã xóa giảng viên!");
       fetchGiangVien();
     } catch (err) {
-      alert(err.response?.data?.error || "Lỗi khi xóa giảng viên!");
+      console.error("❌ Lỗi khi xóa giảng viên:", err);
+      alert("Không thể xóa giảng viên này!");
     }
   };
 
+  // 🔹 Lọc kết quả tìm kiếm
+  const filtered = giangVienList.filter((gv) =>
+    [gv.ho_ten, gv.ma_giang_vien, gv.ten_khoa, gv.chuc_vu]
+      .some((f) => f?.toLowerCase().includes(keyword.toLowerCase()))
+  );
+
+  // 🔹 Giao diện
   return (
     <div className="admin-dashboard">
       <h1>👨‍🏫 Quản lý giảng viên</h1>
 
-      {/* 🔍 Thanh tìm kiếm */}
+      {/* Bộ lọc */}
       <div className="filter-bar">
         <input
           type="text"
-          placeholder="Tìm theo mã, tên, khoa, chức vụ..."
+          placeholder="Tìm mã, tên, khoa, chức vụ..."
           value={keyword}
           onChange={(e) => setKeyword(e.target.value)}
         />
       </div>
 
-      {/* 🧩 Form thêm / sửa */}
-      <form className="create-form" onSubmit={handleSubmit}>
+      {/* Form thêm / cập nhật */}
+      <form className="create-form" onSubmit={handleUpsert}>
         <h3>{editing ? "✏️ Sửa giảng viên" : "➕ Thêm giảng viên mới"}</h3>
         {!editing && (
           <input
             type="text"
             placeholder="Mã giảng viên"
             value={form.ma_giang_vien}
-            onChange={(e) => setForm({ ...form, ma_giang_vien: e.target.value })}
+            onChange={(e) =>
+              setForm({ ...form, ma_giang_vien: e.target.value })
+            }
           />
         )}
         <input
@@ -192,6 +200,7 @@ const GiangVienManager = () => {
           value={form.anh_dai_dien}
           onChange={(e) => setForm({ ...form, anh_dai_dien: e.target.value })}
         />
+
         <button type="submit">{editing ? "💾 Lưu" : "Thêm"}</button>
         {editing && (
           <button
@@ -215,49 +224,59 @@ const GiangVienManager = () => {
         )}
       </form>
 
-      {/* 📋 Bảng danh sách */}
+      {/* Bảng danh sách */}
       <div className="table-container">
-        {loading ? (
-          <p>Đang tải...</p>
-        ) : (
-          <table className="data-table">
-            <thead>
+        <table className="data-table">
+          <thead>
+            <tr>
+              <th>Ảnh</th>
+              <th>Mã GV</th>
+              <th>Họ tên</th>
+              <th>Học vị</th>
+              <th>Chức vụ</th>
+              <th>Khoa</th>
+              <th>Email</th>
+              <th>Điện thoại</th>
+              <th>Thao tác</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filtered.length === 0 ? (
               <tr>
-                <th>Mã GV</th>
-                <th>Họ tên</th>
-                <th>Học vị</th>
-                <th>Chức vụ</th>
-                <th>Khoa</th>
-                <th>Email</th>
-                <th>Điện thoại</th>
-                <th>Thao tác</th>
+                <td colSpan="9">Không có dữ liệu</td>
               </tr>
-            </thead>
-            <tbody>
-              {giangVienList.length === 0 ? (
-                <tr>
-                  <td colSpan="8">Không có dữ liệu</td>
+            ) : (
+              filtered.map((gv) => (
+                <tr key={gv.ma_giang_vien}>
+                  <td>
+                    {gv.anh_dai_dien ? (
+                      <img
+                        src={gv.anh_dai_dien}
+                        alt="avatar"
+                        className="avatar-thumb"
+                      />
+                    ) : (
+                      <span>—</span>
+                    )}
+                  </td>
+                  <td>{gv.ma_giang_vien}</td>
+                  <td>{gv.ho_ten}</td>
+                  <td>{gv.hoc_vi || "—"}</td>
+                  <td>{gv.chuc_vu || "—"}</td>
+                  <td>{gv.ten_khoa || "—"}</td>
+                  <td>{gv.email || "—"}</td>
+                  <td>{gv.dien_thoai || "—"}</td>
+                  <td>
+                    <button onClick={() => handleEdit(gv)}>✏️</button>
+                    <button onClick={() => handleDelete(gv.ma_giang_vien)}>
+                      🗑️
+                    </button>
+                  </td>
                 </tr>
-              ) : (
-                giangVienList.map((gv) => (
-                  <tr key={gv.ma_giang_vien}>
-                    <td>{gv.ma_giang_vien}</td>
-                    <td>{gv.ho_ten}</td>
-                    <td>{gv.hoc_vi || "—"}</td>
-                    <td>{gv.chuc_vu || "—"}</td>
-                    <td>{gv.ten_khoa || "—"}</td>
-                    <td>{gv.email || "—"}</td>
-                    <td>{gv.dien_thoai || "—"}</td>
-                    <td>
-                      <button onClick={() => handleEdit(gv)}>✏️</button>
-                      <button onClick={() => handleDelete(gv.ma_giang_vien)}>🗑️</button>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        )}
+              ))
+            )}
+          </tbody>
+        </table>
       </div>
     </div>
   );

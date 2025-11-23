@@ -8,18 +8,19 @@ const AdminQuanLyDangKy = () => {
   const [dangKyList, setDangKyList] = useState([]);
   const [keyword, setKeyword] = useState("");
   const [loading, setLoading] = useState(false);
-  const token = localStorage.getItem("token");
 
+  // 🔹 Tải danh sách đăng ký
   const fetchData = async () => {
     try {
       setLoading(true);
       const res = await axios.get(`${API_URL}/api/dangky/all`, {
-        headers: { Authorization: `Bearer ${token}` },
+        withCredentials: true, // ✅ Cookie JWT tự động kèm
       });
       const data = Array.isArray(res.data.data) ? res.data.data : res.data;
       setDangKyList(data);
     } catch (err) {
-      console.error("Lỗi khi tải danh sách đăng ký:", err);
+      console.error("❌ Lỗi khi tải danh sách đăng ký:", err);
+      alert("Không thể tải danh sách đăng ký!");
     } finally {
       setLoading(false);
     }
@@ -29,26 +30,30 @@ const AdminQuanLyDangKy = () => {
     fetchData();
   }, []);
 
+  // 🔹 Hủy đăng ký học phần
   const handleHuy = async (ma_sinh_vien, ma_lop_hp) => {
     if (!window.confirm("Xác nhận hủy đăng ký này?")) return;
     try {
       await axios.put(
         `${API_URL}/api/dangky/huy/${ma_lop_hp}`,
         { ma_sinh_vien },
-        { headers: { Authorization: `Bearer ${token}` } }
+        { withCredentials: true } // ✅ Cookie tự động kèm
       );
       alert("✅ Hủy đăng ký thành công!");
       fetchData();
     } catch (err) {
+      console.error("❌ Lỗi khi hủy đăng ký:", err);
       alert(err.response?.data?.error || "Lỗi khi hủy đăng ký!");
     }
   };
 
+  // 🔹 Lọc kết quả tìm kiếm
   const filtered = dangKyList.filter((d) =>
-    [d.ten_sinh_vien, d.ten_mon, d.ten_hoc_ky, d.giang_vien, d.ma_lop_hp]
-      .some(field => field?.toLowerCase().includes(keyword.toLowerCase()))
+    [d.ten_sinh_vien, d.ten_mon, d.ten_hoc_ky, d.giang_vien, d.ma_lop_hp].some(
+      (field) => field?.toLowerCase().includes(keyword.toLowerCase())
+    )
   );
-
+  
   return (
     <div className="admin-dashboard">
       <h1>🧾 Quản lý đăng ký môn học</h1>

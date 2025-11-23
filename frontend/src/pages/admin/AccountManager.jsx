@@ -9,20 +9,24 @@ const AccountManager = () => {
   const [keyword, setKeyword] = useState("");
   const [vaiTro, setVaiTro] = useState("");
   const [loading, setLoading] = useState(false);
-  const [form, setForm] = useState({ ten_dang_nhap: "", mat_khau: "", vai_tro: "sinhvien" });
-  const token = localStorage.getItem("token");
+  const [form, setForm] = useState({
+    ten_dang_nhap: "",
+    mat_khau: "",
+    vai_tro: "sinhvien",
+  });
 
+  // 🔹 Lấy danh sách tài khoản
   const fetchAccounts = async () => {
     try {
       setLoading(true);
       const res = await axios.get(`${API_URL}/api/admin/accounts`, {
         params: { keyword, vai_tro: vaiTro },
-        headers: { Authorization: `Bearer ${token}` },
+        withCredentials: true, // ✅ Gửi cookie JWT kèm theo
       });
       setAccounts(res.data);
     } catch (err) {
-      console.error(err);
-      alert("Lỗi khi tải danh sách tài khoản!");
+      console.error("Lỗi tải danh sách tài khoản:", err);
+      alert("Không thể tải danh sách tài khoản!");
     } finally {
       setLoading(false);
     }
@@ -32,33 +36,39 @@ const AccountManager = () => {
     fetchAccounts();
   }, [keyword, vaiTro]);
 
+  // 🔹 Tạo tài khoản mới
   const handleCreate = async (e) => {
     e.preventDefault();
-    if (!form.ten_dang_nhap || !form.mat_khau) return alert("Điền đủ thông tin!");
+    if (!form.ten_dang_nhap || !form.mat_khau)
+      return alert("⚠️ Điền đầy đủ thông tin!");
+
     try {
       await axios.post(`${API_URL}/api/admin/create-account`, form, {
-        headers: { Authorization: `Bearer ${token}` },
+        withCredentials: true, // ✅ Cookie tự gửi
       });
       alert("✅ Tạo tài khoản thành công!");
       setForm({ ten_dang_nhap: "", mat_khau: "", vai_tro: "sinhvien" });
       fetchAccounts();
     } catch (err) {
-      alert(err.response?.data?.message || "Lỗi khi tạo tài khoản");
+      alert(err.response?.data?.message || "❌ Lỗi khi tạo tài khoản");
     }
   };
 
+  // 🔹 Xóa tài khoản
   const handleDelete = async (id) => {
     if (!window.confirm("Bạn có chắc muốn xóa tài khoản này không?")) return;
     try {
       await axios.delete(`${API_URL}/api/admin/accounts/${id}`, {
-        headers: { Authorization: `Bearer ${token}` },
+        withCredentials: true, // ✅ Cookie tự gửi
       });
+      alert("🗑️ Đã xóa tài khoản!");
       fetchAccounts();
-    } catch {
-      alert("Lỗi khi xóa tài khoản!");
+    } catch (err) {
+      alert("❌ Lỗi khi xóa tài khoản!");
     }
   };
 
+  // 🔹 Đặt lại mật khẩu
   const handleResetPassword = async (id) => {
     const newPass = prompt("Nhập mật khẩu mới:");
     if (!newPass) return;
@@ -66,24 +76,26 @@ const AccountManager = () => {
       await axios.put(
         `${API_URL}/api/admin/accounts/${id}/reset-password`,
         { mat_khau_moi: newPass },
-        { headers: { Authorization: `Bearer ${token}` } }
+        { withCredentials: true } // ✅ Cookie tự gửi
       );
       alert("✅ Đặt lại mật khẩu thành công!");
-    } catch {
-      alert("Lỗi khi đặt lại mật khẩu!");
+    } catch (err) {
+      alert("❌ Lỗi khi đặt lại mật khẩu!");
     }
   };
 
+  // 🔹 Cập nhật vai trò / trạng thái
   const handleUpdate = async (id, newRole, newStatus) => {
     try {
       await axios.put(
         `${API_URL}/api/admin/accounts/${id}`,
         { vai_tro: newRole, trang_thai: newStatus },
-        { headers: { Authorization: `Bearer ${token}` } }
+        { withCredentials: true } // ✅ Cookie tự gửi
       );
+      alert("✅ Cập nhật tài khoản thành công!");
       fetchAccounts();
-    } catch {
-      alert("Lỗi khi cập nhật tài khoản!");
+    } catch (err) {
+      alert("❌ Lỗi khi cập nhật tài khoản!");
     }
   };
 
@@ -103,6 +115,7 @@ const AccountManager = () => {
           <option value="">Tất cả vai trò</option>
           <option value="sinhvien">Sinh viên</option>
           <option value="giangvien">Giảng viên</option>
+          <option value="nhanvien">Nhân Viên</option>
           <option value="admin">Quản trị viên</option>
         </select>
       </div>
@@ -128,6 +141,7 @@ const AccountManager = () => {
         >
           <option value="sinhvien">Sinh viên</option>
           <option value="giangvien">Giảng viên</option>
+          <option value="nhanvien">Nhân Viên</option>
           <option value="admin">Admin</option>
         </select>
         <button type="submit">➕ Thêm</button>
@@ -168,6 +182,7 @@ const AccountManager = () => {
                       >
                         <option value="sinhvien">Sinh viên</option>
                         <option value="giangvien">Giảng viên</option>
+                        <option value="nhanvien">Nhân Viên</option>
                         <option value="admin">Admin</option>
                       </select>
                     </td>

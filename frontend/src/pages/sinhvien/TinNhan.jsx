@@ -5,7 +5,12 @@ import { io } from "socket.io-client";
 import "../../styles/TinNhan.css";
 
 const API_URL = process.env.REACT_APP_API_URL || "http://localhost:5000";
-const socket = io(API_URL, { transports: ["websocket"] });
+
+// ✅ Kết nối socket có xác thực token
+const socket = io(API_URL, {
+  transports: ["websocket"],
+  auth: { token: localStorage.getItem("token") },
+});
 
 const TinNhan = () => {
   const token = localStorage.getItem("token");
@@ -13,9 +18,7 @@ const TinNhan = () => {
   const navigate = useNavigate();
   const chatBoxRef = useRef(null);
 
-  // 🧠 State
   const [currentUser, setCurrentUser] = useState(null);
-  const [students, setStudents] = useState([]);
   const [contacts, setContacts] = useState([]);
   const [receiver, setReceiver] = useState(id || null);
   const [receiverInfo, setReceiverInfo] = useState({});
@@ -26,50 +29,53 @@ const TinNhan = () => {
   const [unread, setUnread] = useState({});
   const [readReceipts, setReadReceipts] = useState({});
 
-  // ⬇️ Cuộn xuống cuối khi có tin mới
-  const scrollToBottom = () =>
+  // 📜 Scroll xuống cuối
+  const scrollToBottom = () => {
     requestAnimationFrame(() =>
       chatBoxRef.current?.scrollTo({
         top: chatBoxRef.current.scrollHeight,
         behavior: "smooth",
       })
     );
+  };
 
-  // 🧍‍♂️ Lấy thông tin sinh viên hiện tại
+  // 🧍 Lấy thông tin sinh viên hiện tại
   useEffect(() => {
     const fetchMe = async () => {
       try {
         const res = await axios.get(`${API_URL}/api/sinhvien/me`, {
-          headers: { Authorization: `Bearer ${token}` },
+          withCredentials: true,
         });
         setCurrentUser(res.data.ten_dang_nhap?.trim());
       } catch (err) {
-        console.error("❌ Lỗi lấy sinh viên hiện tại:", err);
+        console.error("❌ Không thể lấy thông tin người dùng:", err);
       }
     };
     fetchMe();
-  }, [token]);
+  }, []);
 
-  // 📚 Lấy toàn bộ sinh viên (để mapping họ tên + avatar)
-  useEffect(() => {
-    const fetchAllStudents = async () => {
-      try {
-        const res = await axios.get(`${API_URL}/api/sinhvien`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        setStudents(res.data || []);
-      } catch (err) {
-        console.error("❌ Lỗi tải danh sách sinh viên:", err);
-      }
-    };
-    fetchAllStudents();
-  }, [token]);
+  // 🔧 Hàm fetch thông tin user bất kỳ
+  const fetchUserInfo = async (username) => {
+    try {
+      const res = await axios.get(`${API_URL}/api/sinhvien/by-username/${username}`, {
+        withCredentials: true,
+      });
+      return {
+        ten_dang_nhap: res.data.ten_dang_nhap,
+        ho_ten: res.data.ho_ten,
+        hinh_anh: res.data.hinh_anh,
+      };
+    } catch {
+      return { ten_dang_nhap: username, ho_ten: username, hinh_anh: null };
+    }
+  };
 
   // 🧩 SOCKET setup
   useEffect(() => {
     if (!currentUser) return;
 
     socket.emit("registerUser", currentUser);
+
     socket.on("onlineUsers", setOnlineUsers);
 
     socket.on("newMessage", (msg) => {
@@ -79,6 +85,7 @@ const TinNhan = () => {
       ) {
         setMessages((prev) => [...prev, msg]);
         scrollToBottom();
+        socket.emit("markAsRead", { reader: currentUser, sender: receiver });
       } else if (msg.nguoi_nhan === currentUser) {
         setUnread((prev) => ({
           ...prev,
@@ -110,64 +117,49 @@ const TinNhan = () => {
     };
   }, [currentUser, receiver]);
 
-  // 📨 Lấy danh bạ tin nhắn + map sang sinh viên
+  // 📞 Lấy danh bạ
   useEffect(() => {
-    if (!currentUser || students.length === 0) return;
-
+    if (!currentUser) return;
     const fetchContacts = async () => {
       try {
-        const resMsg = await axios.get(`${API_URL}/api/tinnhan/my`, {
-          headers: { Authorization: `Bearer ${token}` },
+        const res = await axios.get(`${API_URL}/api/tinnhan/my`, {
+          withCredentials: true,
         });
-        const allMsg = resMsg.data.data || [];
-
-        const uniqueUsers = [
+        const data = res.data.data || [];
+        const usernames = [
           ...new Set(
-            allMsg.map((m) =>
+            data.map((m) =>
               m.nguoi_gui === currentUser ? m.nguoi_nhan : m.nguoi_gui
             )
           ),
         ];
 
-        const mappedContacts = await Promise.all(
-          uniqueUsers.map(async (username) => {
-            try {
-              const res = await axios.get(`${API_URL}/api/sinhvien/by-username/${username}`, {
-                headers: { Authorization: `Bearer ${token}` },
-              });
-              const sv = res.data;
-              return {
-                username,
-                ho_ten: sv.ho_ten || username,
-                hinh_anh: sv.hinh_anh || null,
-              };
-            } catch {
-              return { username, ho_ten: username, hinh_anh: null };
-            }
+        const mapped = await Promise.all(
+          usernames.map(async (u) => {
+            const info = await fetchUserInfo(u);
+            return { username: u, ...info };
           })
         );
-
-
-        setContacts(mappedContacts);
+        setContacts(mapped);
       } catch (err) {
-        console.error("❌ Lỗi khi tải danh bạ:", err);
+        console.error("❌ Lỗi lấy danh bạ:", err);
       }
     };
     fetchContacts();
-  }, [currentUser, students]);
+  }, [currentUser]);
 
-  // 📨 Lấy hội thoại
+  // 📬 Lấy tin nhắn giữa 2 người
   const loadMessages = async (receiverId) => {
     try {
       const res = await axios.get(`${API_URL}/api/tinnhan/${receiverId}`, {
-        headers: { Authorization: `Bearer ${token}` },
+        withCredentials: true,
       });
       setMessages(res.data.data || []);
       socket.emit("markAsRead", { reader: currentUser, sender: receiverId });
       setUnread((prev) => ({ ...prev, [receiverId]: 0 }));
       scrollToBottom();
     } catch (err) {
-      console.error("❌ Lỗi hội thoại:", err);
+      console.error("❌ Lỗi khi tải hội thoại:", err);
     }
   };
 
@@ -176,51 +168,19 @@ const TinNhan = () => {
     setReceiver(username);
     navigate(`/sinhvien/tinnhan/${username}`);
     loadMessages(username);
-
-    try {
-      // ✅ Lấy thông tin người nhận bằng API mới
-      const res = await axios.get(`${API_URL}/api/sinhvien/by-username/${username}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setReceiverInfo({
-        ten_dang_nhap: res.data.ten_dang_nhap,
-        ho_ten: res.data.ho_ten,
-        hinh_anh: res.data.hinh_anh,
-      });
-    } catch (err) {
-      console.error("❌ Không lấy được thông tin người nhận:", err);
-      setReceiverInfo({
-        ten_dang_nhap: username,
-        ho_ten: username,
-        hinh_anh: null,
-      });
-    }
+    setReceiverInfo(await fetchUserInfo(username));
   };
 
-  // Khi URL thay đổi (load tin nhắn trực tiếp qua URL)
+  // Khi truy cập trực tiếp /tinnhan/:id
   useEffect(() => {
     if (id && currentUser) {
       setReceiver(id);
       loadMessages(id);
-      const fetchReceiverInfo = async () => {
-        try {
-          const res = await axios.get(`${API_URL}/api/sinhvien/by-username/${id}`, {
-            headers: { Authorization: `Bearer ${token}` },
-          });
-          setReceiverInfo({
-            ten_dang_nhap: res.data.ten_dang_nhap,
-            ho_ten: res.data.ho_ten,
-            hinh_anh: res.data.hinh_anh,
-          });
-        } catch {
-          setReceiverInfo({ ten_dang_nhap: id, ho_ten: id, hinh_anh: null });
-        }
-      };
-      fetchReceiverInfo();
+      fetchUserInfo(id).then(setReceiverInfo);
     }
   }, [id, currentUser]);
 
-  // 🚀 Gửi tin nhắn
+  // ✉️ Gửi tin nhắn
   const sendMessage = () => {
     if (!input.trim() || !receiver) return;
     const msg = {
@@ -254,8 +214,7 @@ const TinNhan = () => {
           {contacts.map((c, i) => (
             <div
               key={i}
-              className={`contact-item ${receiver === c.username ? "active" : ""
-                }`}
+              className={`contact-item ${receiver === c.username ? "active" : ""}`}
               onClick={() => selectUser(c.username)}
             >
               <div className="contact-avatar">
@@ -266,6 +225,7 @@ const TinNhan = () => {
                       : "/default-avatar.png"
                   }
                   alt="avatar"
+                  onError={(e) => (e.target.src = "/default-avatar.png")}
                 />
                 {isOnline(c.username) && <span className="online-dot"></span>}
               </div>
@@ -293,6 +253,7 @@ const TinNhan = () => {
                     : "/default-avatar.png"
                 }
                 alt="avt"
+                onError={(e) => (e.target.src = "/default-avatar.png")}
               />
               <div>
                 <div className="user-name">{receiverInfo.ho_ten}</div>
@@ -308,6 +269,10 @@ const TinNhan = () => {
                   <div className="chat-date">{d}</div>
                   {grouped[d].map((m, i) => {
                     const mine = m.nguoi_gui === currentUser;
+                    const readTime =
+                      mine && i === grouped[d].length - 1
+                        ? readReceipts[receiver]
+                        : null;
                     return (
                       <div
                         key={i}
@@ -322,6 +287,7 @@ const TinNhan = () => {
                             }
                             alt=""
                             className="msg-avatar"
+                            onError={(e) => (e.target.src = "/default-avatar.png")}
                           />
                         )}
                         <div className="msg-bubble">
@@ -334,6 +300,9 @@ const TinNhan = () => {
                               minute: "2-digit",
                             })}
                           </div>
+                          {readTime && (
+                            <div className="read-time">Đã xem {readTime}</div>
+                          )}
                         </div>
                       </div>
                     );

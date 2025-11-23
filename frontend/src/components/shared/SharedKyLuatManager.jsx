@@ -16,20 +16,19 @@ const KyLuatManager = () => {
     nguoi_ra_quyet_dinh: "",
   });
   const [editing, setEditing] = useState(null);
-  const token = localStorage.getItem("token");
 
-  // 🔄 Lấy danh sách kỷ luật
+  // 🔹 Lấy danh sách kỷ luật
   const fetchKyLuat = async () => {
     try {
       setLoading(true);
       const res = await axios.get(`${API_URL}/api/kyluat`, {
-        headers: { Authorization: `Bearer ${token}` },
+        withCredentials: true, // ✅ cookie JWT tự động gửi
         params: keyword ? { q: keyword } : {},
       });
       setKyLuatList(res.data.data || []);
     } catch (err) {
-      console.error(err);
-      alert("❌ Lỗi khi tải danh sách kỷ luật!");
+      console.error("❌ Lỗi khi tải danh sách kỷ luật:", err);
+      alert("Không thể tải danh sách kỷ luật!");
     } finally {
       setLoading(false);
     }
@@ -38,10 +37,7 @@ const KyLuatManager = () => {
   // 🧭 Load dữ liệu ban đầu & khi tìm kiếm
   useEffect(() => {
     fetchKyLuat();
-  }, []);
-
-  useEffect(() => {
-    fetchKyLuat();
+    // eslint-disable-next-line
   }, [keyword]);
 
   // ➕ Thêm hoặc sửa kỷ luật
@@ -53,15 +49,13 @@ const KyLuatManager = () => {
 
     try {
       if (editing) {
-        await axios.put(
-          `${API_URL}/api/kyluat/${editing}`,
-          form,
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
+        await axios.put(`${API_URL}/api/kyluat/${editing}`, form, {
+          withCredentials: true,
+        });
         alert("✅ Cập nhật kỷ luật thành công!");
       } else {
         await axios.post(`${API_URL}/api/kyluat`, form, {
-          headers: { Authorization: `Bearer ${token}` },
+          withCredentials: true,
         });
         alert("✅ Thêm kỷ luật thành công!");
       }
@@ -76,8 +70,8 @@ const KyLuatManager = () => {
       setEditing(null);
       fetchKyLuat();
     } catch (err) {
-      console.error(err);
-      alert(err.response?.data?.error || "❌ Lỗi khi lưu kỷ luật!");
+      console.error("❌ Lỗi khi lưu kỷ luật:", err);
+      alert(err.response?.data?.error || "Không thể lưu kỷ luật!");
     }
   };
 
@@ -98,16 +92,17 @@ const KyLuatManager = () => {
     if (!window.confirm("Bạn có chắc muốn xóa kỷ luật này không?")) return;
     try {
       await axios.delete(`${API_URL}/api/kyluat/${id}`, {
-        headers: { Authorization: `Bearer ${token}` },
+        withCredentials: true,
       });
-      alert("✅ Đã xóa kỷ luật!");
+      alert("🗑️ Đã xóa kỷ luật!");
       fetchKyLuat();
     } catch (err) {
-      console.error(err);
-      alert("❌ Lỗi khi xóa kỷ luật!");
+      console.error("❌ Lỗi khi xóa kỷ luật:", err);
+      alert("Không thể xóa kỷ luật!");
     }
   };
 
+  // 🖥️ Giao diện
   return (
     <div className="admin-dashboard">
       <h1>⚖️ Quản lý kỷ luật</h1>
@@ -130,20 +125,25 @@ const KyLuatManager = () => {
           type="text"
           placeholder="Mã sinh viên"
           value={form.ma_sinh_vien}
-          onChange={(e) => setForm({ ...form, ma_sinh_vien: e.target.value })}
+          onChange={(e) =>
+            setForm({ ...form, ma_sinh_vien: e.target.value })
+          }
           disabled={!!editing}
         />
         <input
           type="date"
-          placeholder="Ngày quyết định"
           value={form.ngay_quyet_dinh}
-          onChange={(e) => setForm({ ...form, ngay_quyet_dinh: e.target.value })}
+          onChange={(e) =>
+            setForm({ ...form, ngay_quyet_dinh: e.target.value })
+          }
         />
         <input
           type="text"
           placeholder="Hình thức kỷ luật"
           value={form.hinh_thuc}
-          onChange={(e) => setForm({ ...form, hinh_thuc: e.target.value })}
+          onChange={(e) =>
+            setForm({ ...form, hinh_thuc: e.target.value })
+          }
         />
         <input
           type="text"
@@ -204,13 +204,15 @@ const KyLuatManager = () => {
                   <td colSpan="8">Không có dữ liệu</td>
                 </tr>
               ) : (
-                kyLuatList.map((item, idx) => (
-                  <tr key={idx}>
+                kyLuatList.map((item) => (
+                  <tr key={item.id_ky_luat}>
                     <td>{item.id_ky_luat}</td>
                     <td>{item.ma_sinh_vien}</td>
                     <td>{item.ho_ten || "—"}</td>
                     <td>
-                      {new Date(item.ngay_quyet_dinh).toLocaleDateString("vi-VN")}
+                      {item.ngay_quyet_dinh
+                        ? new Date(item.ngay_quyet_dinh).toLocaleDateString("vi-VN")
+                        : "—"}
                     </td>
                     <td>{item.hinh_thuc}</td>
                     <td>{item.ly_do}</td>

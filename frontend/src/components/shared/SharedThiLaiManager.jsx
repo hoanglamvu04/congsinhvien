@@ -15,18 +15,16 @@ const ThiLaiManager = () => {
     le_phi_thi_lai: "",
   });
 
-  const token = localStorage.getItem("token");
-
   // 📘 Lấy danh sách thi lại
   const fetchThiLai = async () => {
     try {
       const res = await axios.get(`${API_URL}/api/thilai/all`, {
-        headers: { Authorization: `Bearer ${token}` },
+        withCredentials: true,
       });
-      setThiLaiList(res.data.data || []);
+      setThiLaiList(res.data.data || res.data || []);
     } catch (err) {
-      console.error(err);
-      alert("❌ Lỗi khi tải danh sách thi lại!");
+      console.error("❌ Lỗi khi tải danh sách thi lại:", err);
+      alert("Không thể tải danh sách thi lại!");
     }
   };
 
@@ -37,9 +35,12 @@ const ThiLaiManager = () => {
   // ➕ Thêm thủ công thi lại
   const handleAdd = async (e) => {
     e.preventDefault();
+    if (!form.ma_sinh_vien || !form.ma_lop_hp)
+      return alert("⚠️ Vui lòng nhập mã sinh viên và mã lớp học phần!");
+
     try {
       await axios.post(`${API_URL}/api/thilai/add`, form, {
-        headers: { Authorization: `Bearer ${token}` },
+        withCredentials: true,
       });
       alert("✅ Thêm thi lại thành công!");
       setForm({
@@ -51,39 +52,41 @@ const ThiLaiManager = () => {
       });
       fetchThiLai();
     } catch (err) {
-      console.error(err);
-      alert("❌ Lỗi khi thêm thi lại!");
+      console.error("❌ Lỗi khi thêm thi lại:", err);
+      alert(err.response?.data?.error || "Không thể thêm thi lại!");
     }
   };
 
   // ✏️ Cập nhật điểm thi lại
   const handleUpdate = async (id_thi_lai) => {
     const diem_thi_lai = prompt("Nhập điểm thi lại mới:");
-    if (!diem_thi_lai) return;
+    if (diem_thi_lai === null || diem_thi_lai.trim() === "") return;
     try {
       await axios.put(
         `${API_URL}/api/thilai/${id_thi_lai}`,
         { diem_thi_lai },
-        { headers: { Authorization: `Bearer ${token}` } }
+        { withCredentials: true }
       );
       alert("✅ Cập nhật điểm thi lại thành công!");
       fetchThiLai();
-    } catch {
-      alert("❌ Lỗi khi cập nhật!");
+    } catch (err) {
+      console.error("❌ Lỗi khi cập nhật:", err);
+      alert("Không thể cập nhật điểm thi lại!");
     }
   };
 
   // 🤖 Quét tự động SV có điểm <5
   const handleAutoDetect = async () => {
-    if (!window.confirm("Quét tự động sinh viên có điểm tổng dưới 5?")) return;
+    if (!window.confirm("Xác nhận quét tự động sinh viên có điểm tổng dưới 5?")) return;
     try {
       const res = await axios.post(`${API_URL}/api/thilai/auto`, {}, {
-        headers: { Authorization: `Bearer ${token}` },
+        withCredentials: true,
       });
-      alert(res.data.message || "✅ Đã quét tự động.");
+      alert(res.data.message || "✅ Đã quét tự động sinh viên đủ điều kiện!");
       fetchThiLai();
-    } catch {
-      alert("❌ Lỗi khi quét tự động!");
+    } catch (err) {
+      console.error("❌ Lỗi khi quét tự động:", err);
+      alert("Không thể quét tự động!");
     }
   };
 
@@ -93,6 +96,21 @@ const ThiLaiManager = () => {
       .some((f) => f?.toLowerCase().includes(keyword.toLowerCase()))
   );
 
+  // 🗑️ Xóa
+  const handleDelete = async (id_thi_lai) => {
+    if (!window.confirm("Bạn có chắc muốn xóa bản ghi thi lại này?")) return;
+    try {
+      await axios.delete(`${API_URL}/api/thilai/${id_thi_lai}`, {
+        withCredentials: true,
+      });
+      alert("🗑️ Xóa thành công!");
+      fetchThiLai();
+    } catch (err) {
+      console.error("❌ Lỗi khi xóa:", err);
+      alert("Không thể xóa thi lại!");
+    }
+  };
+
   return (
     <div className="admin-dashboard">
       <h1>🧾 Quản lý thi lại</h1>
@@ -101,16 +119,17 @@ const ThiLaiManager = () => {
       <div className="filter-bar">
         <input
           type="text"
-          placeholder="Tìm sinh viên, môn học, lớp..."
+          placeholder="Tìm sinh viên, môn học, lớp học phần..."
           value={keyword}
           onChange={(e) => setKeyword(e.target.value)}
         />
         <button className="btn-auto" onClick={handleAutoDetect}>
-          🔍 Quét tự động SV dưới 5 điểm
+          🤖 Quét tự động SV dưới 5 điểm
         </button>
+        <button onClick={fetchThiLai}>🔄 Làm mới</button>
       </div>
 
-      {/* Form thêm thủ công */}
+      {/* 🧾 Form thêm thủ công */}
       <form className="create-form" onSubmit={handleAdd}>
         <h3>➕ Thêm sinh viên thi lại (thủ công)</h3>
         <input
@@ -127,7 +146,6 @@ const ThiLaiManager = () => {
         />
         <input
           type="date"
-          placeholder="Ngày thi lại"
           value={form.ngay_thi_lai}
           onChange={(e) => setForm({ ...form, ngay_thi_lai: e.target.value })}
         />
@@ -140,7 +158,7 @@ const ThiLaiManager = () => {
         <button type="submit">💾 Thêm</button>
       </form>
 
-      {/* Bảng danh sách thi lại */}
+      {/* 📋 Bảng danh sách */}
       <div className="table-container">
         <table className="data-table">
           <thead>
@@ -175,8 +193,11 @@ const ThiLaiManager = () => {
                   <td>{t.lan_thi}</td>
                   <td>{t.diem_thi_lai ?? "-"}</td>
                   <td>
-                    {t.ket_qua === "dat" ? "✅ Đạt" :
-                     t.ket_qua === "khongdat" ? "❌ Rớt" : "⏳ Chưa thi"}
+                    {t.ket_qua === "dat"
+                      ? "✅ Đạt"
+                      : t.ket_qua === "khongdat"
+                      ? "❌ Rớt"
+                      : "⏳ Chưa thi"}
                   </td>
                   <td>
                     {t.trang_thai === "hoan_tat"
@@ -185,26 +206,11 @@ const ThiLaiManager = () => {
                       ? "🟡 Đã thi"
                       : "⚪ Chưa thi"}
                   </td>
-                  <td>{t.ngay_thi_lai?.split("T")[0] ?? "-"}</td>
+                  <td>{t.ngay_thi_lai?.split("T")[0] || "—"}</td>
                   <td>{t.le_phi_thi_lai ?? "-"}</td>
                   <td>
                     <button onClick={() => handleUpdate(t.id_thi_lai)}>✏️</button>
-                    <button
-                      onClick={async () => {
-                        if (!window.confirm("Xóa bản ghi thi lại này?")) return;
-                        try {
-                          await axios.delete(`${API_URL}/api/thilai/${t.id_thi_lai}`, {
-                            headers: { Authorization: `Bearer ${token}` },
-                          });
-                          alert("🗑️ Xóa thành công!");
-                          fetchThiLai();
-                        } catch {
-                          alert("❌ Lỗi khi xóa!");
-                        }
-                      }}
-                    >
-                      🗑️
-                    </button>
+                    <button onClick={() => handleDelete(t.id_thi_lai)}>🗑️</button>
                   </td>
                 </tr>
               ))

@@ -13,15 +13,6 @@
   transition: all 0.3s ease;
 }
 
-/* Sticky header */
-.header.sticky {
-  position: fixed;
-  top: 0;
-  width: 100%;
-  backdrop-filter: blur(6px);
-  background: rgba(0, 45, 120, 0.95);
-  animation: slideDown 0.4s ease;
-}
 
 /* ===== Container ===== */
 .header__container {

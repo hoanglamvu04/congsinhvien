@@ -1,37 +1,54 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
-import "../../styles/ThongTinCaNhan.css";
 import { FaUserGraduate } from "react-icons/fa";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+import "../../styles/ThongTinCaNhan.css";
 
 const API_URL = process.env.REACT_APP_API_URL || "http://localhost:5000";
 
 const ThongTinCaNhan = () => {
   const [sinhVien, setSinhVien] = useState(null);
   const [loading, setLoading] = useState(true);
-  const token = localStorage.getItem("token");
+
+  // 📘 Lấy thông tin sinh viên
+  const fetchSinhVien = async () => {
+    try {
+      const res = await axios.get(`${API_URL}/api/sinhvien/me`, {
+        withCredentials: true,
+      });
+      setSinhVien(res.data);
+    } catch (err) {
+      console.error("❌ Lỗi khi tải thông tin sinh viên:", err);
+      toast.error("Không thể tải thông tin cá nhân!");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const res = await axios.get(`${API_URL}/api/sinhvien/me`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        setSinhVien(res.data);
-      } catch (err) {
-        console.error(err);
-        alert("❌ Không thể tải thông tin cá nhân!");
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
+    fetchSinhVien();
   }, []);
 
-  if (loading) return <p>⏳ Đang tải thông tin...</p>;
-  if (!sinhVien) return <p>⚠️ Không có dữ liệu hiển thị.</p>;
+  if (loading)
+    return (
+      <div className="page-container">
+        <p>⏳ Đang tải thông tin...</p>
+      </div>
+    );
+
+  if (!sinhVien)
+    return (
+      <div className="page-container">
+        <p>⚠️ Không có dữ liệu hiển thị.</p>
+      </div>
+    );
 
   return (
-    <div className="profile-container">
+    <div className="page-container profile-container">
+      <ToastContainer position="top-center" autoClose={2000} />
+
+      {/* Header */}
       <div className="profile-header">
         <FaUserGraduate className="profile-icon" />
         <h2>Thông tin cá nhân sinh viên</h2>
@@ -46,12 +63,13 @@ const ThongTinCaNhan = () => {
                 ? `${API_URL}${sinhVien.hinh_anh}`
                 : "/default-avatar.png"
             }
+            onError={(e) => (e.target.src = "/default-avatar.png")}
             alt="Avatar"
             className="profile-avatar"
           />
           <h3>{sinhVien.ho_ten}</h3>
           <p className="student-id">MSSV: {sinhVien.ma_sinh_vien}</p>
-          <p className="student-status">
+          <p className={`student-status status-${sinhVien.trang_thai_hoc_tap}`}>
             {sinhVien.trang_thai_hoc_tap === "danghoc"
               ? "📘 Đang học"
               : sinhVien.trang_thai_hoc_tap === "baoluu"

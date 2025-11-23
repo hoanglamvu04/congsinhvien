@@ -80,3 +80,30 @@ export const deleteLop = async (req, res) => {
     res.status(500).json({ error: "Lỗi khi xóa lớp" });
   }
 };
+
+export const getLopTheoKhoa = async (req, res) => {
+  try {
+    const { ma_nganh } = req.params;
+    const [rows] = await pool.query(
+      "SELECT ma_lop, ten_lop FROM lop WHERE ma_nganh = ?",
+      [ma_nganh]
+    );
+    res.json({ data: rows });
+  } catch (error) {
+    console.error("❌ Lỗi khi lấy danh sách lớp theo khoa:", error);
+    res.status(500).json({ error: "Không thể lấy danh sách lớp theo khoa" });
+  }
+};
+export const getLopTheoNganh = async (req, res) => {
+  try {
+    const { ma_nganh } = req.params;
+    const [rows] = await pool.query(
+      "SELECT ma_lop, ten_lop FROM lop WHERE ma_nganh = ?",
+      [ma_nganh]
+    );
+    res.json({ data: rows });
+  } catch (error) {
+    console.error("❌ Lỗi khi lấy lớp theo ngành:", error);
+    res.status(500).json({ error: "Không thể lấy danh sách lớp" });
+  }
+};

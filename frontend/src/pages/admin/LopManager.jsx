@@ -18,20 +18,19 @@ const LopManager = () => {
     trang_thai: "hoatdong",
   });
   const [editing, setEditing] = useState(null);
-  const token = localStorage.getItem("token");
 
   // 🔄 Lấy danh sách lớp
   const fetchLop = async () => {
     try {
       setLoading(true);
       const res = await axios.get(`${API_URL}/api/lop`, {
-        headers: { Authorization: `Bearer ${token}` },
+        withCredentials: true,
         params: { q: keyword },
       });
       setLopList(res.data.data || []);
     } catch (err) {
-      console.error(err);
-      alert("Lỗi khi tải danh sách lớp!");
+      console.error("❌ Lỗi khi tải danh sách lớp:", err);
+      alert("Không thể tải danh sách lớp!");
     } finally {
       setLoading(false);
     }
@@ -41,11 +40,11 @@ const LopManager = () => {
   const fetchNganh = async () => {
     try {
       const res = await axios.get(`${API_URL}/api/nganh`, {
-        headers: { Authorization: `Bearer ${token}` },
+        withCredentials: true,
       });
       setNganhList(res.data.data || res.data);
     } catch {
-      console.warn("Không thể tải danh sách ngành");
+      console.warn("⚠️ Không thể tải danh sách ngành!");
     }
   };
 
@@ -58,16 +57,17 @@ const LopManager = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!form.ma_lop || !form.ten_lop || !form.ma_nganh)
-      return alert("Điền đủ Mã lớp, Tên lớp, Mã ngành!");
+      return alert("⚠️ Điền đủ Mã lớp, Tên lớp, Mã ngành!");
+
     try {
       if (editing) {
         await axios.put(`${API_URL}/api/lop/${editing}`, form, {
-          headers: { Authorization: `Bearer ${token}` },
+          withCredentials: true,
         });
         alert("✅ Cập nhật lớp thành công!");
       } else {
         await axios.post(`${API_URL}/api/lop`, form, {
-          headers: { Authorization: `Bearer ${token}` },
+          withCredentials: true,
         });
         alert("✅ Thêm lớp thành công!");
       }
@@ -82,8 +82,8 @@ const LopManager = () => {
       setEditing(null);
       fetchLop();
     } catch (err) {
-      console.error(err);
-      alert(err.response?.data?.error || "Lỗi khi lưu lớp!");
+      console.error("❌ Lỗi khi lưu lớp:", err);
+      alert(err.response?.data?.error || "Không thể lưu lớp!");
     }
   };
 
@@ -105,15 +105,17 @@ const LopManager = () => {
     if (!window.confirm("Bạn có chắc muốn xóa lớp này không?")) return;
     try {
       await axios.delete(`${API_URL}/api/lop/${ma_lop}`, {
-        headers: { Authorization: `Bearer ${token}` },
+        withCredentials: true,
       });
-      alert("✅ Đã xóa lớp!");
+      alert("🗑️ Đã xóa lớp!");
       fetchLop();
     } catch (err) {
-      alert(err.response?.data?.error || "Lỗi khi xóa lớp!");
+      console.error("❌ Lỗi khi xóa lớp:", err);
+      alert(err.response?.data?.error || "Không thể xóa lớp!");
     }
   };
 
+  // 🧭 Giao diện
   return (
     <div className="admin-dashboard">
       <h1>🏫 Quản lý lớp</h1>
@@ -226,7 +228,9 @@ const LopManager = () => {
                     <td>{item.ten_nganh || "—"}</td>
                     <td>{item.khoa_hoc || "—"}</td>
                     <td>{item.co_van || "—"}</td>
-                    <td>{item.trang_thai === "hoatdong" ? "Hoạt động" : "Khóa"}</td>
+                    <td>
+                      {item.trang_thai === "hoatdong" ? "Hoạt động" : "Khóa"}
+                    </td>
                     <td>
                       <button onClick={() => handleEdit(item)}>✏️</button>
                       <button onClick={() => handleDelete(item.ma_lop)}>🗑️</button>

@@ -11,39 +11,53 @@ import {
   FaMedal,
   FaBookOpen,
 } from "react-icons/fa";
-import { toast } from "react-toastify";
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 import "../../styles/DiemRenLuyen.css";
 
 const API_URL = process.env.REACT_APP_API_URL || "http://localhost:5000";
 
 const DiemRenLuyen = () => {
-  const token = localStorage.getItem("token");
   const [dsDiem, setDsDiem] = useState([]);
   const [filtered, setFiltered] = useState([]);
-  const [hocKyList, setHocKyList] = useState([]);
+  const [hocKyList, setHocKyList] = useState(["Tất cả"]);
   const [hocKyChon, setHocKyChon] = useState("Tất cả");
   const [loading, setLoading] = useState(true);
-  const [thongKe, setThongKe] = useState({ tb: 0, max: 0, min: 0 });
+  const [thongKe, setThongKe] = useState({ tb: 0, max: 0, min: 0, xl: "" });
 
-  // 📘 Lấy dữ liệu
+  // 🔹 Lấy dữ liệu điểm rèn luyện
   const fetchDiemRenLuyen = async () => {
     try {
       const res = await axios.get(`${API_URL}/api/diemrenluyen`, {
-        headers: { Authorization: `Bearer ${token}` },
+        withCredentials: true,
       });
+
       const data = res.data || [];
       setDsDiem(data);
       setFiltered(data);
-      setHocKyList(["Tất cả", ...new Set(data.map((x) => x.ten_hoc_ky))]);
 
       if (data.length > 0) {
         const diemArr = data.map((d) => d.diem_chung_ket || 0);
         const tb = (diemArr.reduce((a, b) => a + b, 0) / diemArr.length).toFixed(1);
+        const xepLoaiTB =
+          tb >= 90
+            ? "Xuất sắc"
+            : tb >= 80
+            ? "Tốt"
+            : tb >= 65
+            ? "Khá"
+            : tb >= 50
+            ? "Trung bình"
+            : "Yếu";
         setThongKe({
           tb,
           max: Math.max(...diemArr),
           min: Math.min(...diemArr),
+          xl: xepLoaiTB,
         });
+        setHocKyList(["Tất cả", ...new Set(data.map((x) => x.ten_hoc_ky))]);
+      } else {
+        setThongKe({ tb: 0, max: 0, min: 0, xl: "" });
       }
     } catch (err) {
       console.error("❌ Lỗi khi tải điểm rèn luyện:", err);
@@ -57,7 +71,7 @@ const DiemRenLuyen = () => {
     fetchDiemRenLuyen();
   }, []);
 
-  // 📊 Lọc theo học kỳ
+  // 🔹 Lọc theo học kỳ
   const handleFilter = (value) => {
     setHocKyChon(value);
     if (value === "Tất cả") {
@@ -69,43 +83,51 @@ const DiemRenLuyen = () => {
 
   return (
     <div className="drl-page">
+      <ToastContainer position="top-center" autoClose={2500} />
+
       <div className="drl-header">
         <FaBookOpen className="icon" />
-        <h2>Điểm rèn luyện</h2>
+        <h2>Điểm rèn luyện cá nhân</h2>
       </div>
 
       {/* 📊 Thống kê nhanh */}
       {!loading && dsDiem.length > 0 && (
-        <div className="summary-container">
-          <div className="summary-card blue">
-            <FaChartBar />
-            <div>
-              <p>Tổng học kỳ</p>
-              <b>{dsDiem.length}</b>
+        <>
+          <div className="summary-container">
+            <div className="summary-card blue">
+              <FaChartBar />
+              <div>
+                <p>Tổng học kỳ</p>
+                <b>{dsDiem.length}</b>
+              </div>
+            </div>
+            <div className="summary-card green">
+              <FaStar />
+              <div>
+                <p>Trung bình</p>
+                <b>{thongKe.tb}</b>
+              </div>
+            </div>
+            <div className="summary-card yellow">
+              <FaTrophy />
+              <div>
+                <p>Cao nhất</p>
+                <b>{thongKe.max}</b>
+              </div>
+            </div>
+            <div className="summary-card red">
+              <FaExclamationTriangle />
+              <div>
+                <p>Thấp nhất</p>
+                <b>{thongKe.min}</b>
+              </div>
             </div>
           </div>
-          <div className="summary-card green">
-            <FaStar />
-            <div>
-              <p>Trung bình</p>
-              <b>{thongKe.tb}</b>
-            </div>
-          </div>
-          <div className="summary-card yellow">
-            <FaTrophy />
-            <div>
-              <p>Cao nhất</p>
-              <b>{thongKe.max}</b>
-            </div>
-          </div>
-          <div className="summary-card red">
-            <FaExclamationTriangle />
-            <div>
-              <p>Thấp nhất</p>
-              <b>{thongKe.min}</b>
-            </div>
-          </div>
-        </div>
+
+          <p className="xl-summary">
+            💡 Xếp loại trung bình toàn khóa: <b>{thongKe.xl}</b>
+          </p>
+        </>
       )}
 
       {/* Bộ lọc học kỳ */}
@@ -131,9 +153,9 @@ const DiemRenLuyen = () => {
               <tr>
                 <th>#</th>
                 <th>Học kỳ</th>
-                <th>Điểm tự đánh giá</th>
-                <th>Điểm cố vấn</th>
-                <th>Điểm chung kết</th>
+                <th>Tự đánh giá</th>
+                <th>Cố vấn</th>
+                <th>Chung kết</th>
                 <th>Xếp loại</th>
               </tr>
             </thead>

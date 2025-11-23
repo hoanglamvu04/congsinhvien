@@ -9,32 +9,13 @@ const safeOrderBy = (col, dir) => {
 };
 
 // 🧩 Lấy danh sách khoa (tìm kiếm + phân trang + sắp xếp)
+// 📘 Lấy danh sách khoa
 export const getAllKhoa = async (req, res) => {
   try {
-    const { q = "", page = 1, limit = 10, sortBy = "ten_khoa", order = "asc" } = req.query;
-
-    const _page = parseInt(page) || 1;
-    const _limit = parseInt(limit) || 10;
-    const offset = (_page - 1) * _limit;
-    const keyword = `%${q}%`;
-    const orderBy = safeOrderBy(sortBy, order);
-
-    const [countRes] = await pool.query(
-      "SELECT COUNT(*) AS total FROM khoa WHERE ma_khoa LIKE ? OR ten_khoa LIKE ? OR mo_ta LIKE ?",
-      [keyword, keyword, keyword]
-    );
-    const total = countRes[0].total;
-
-    const [rows] = await pool.query(
-      `SELECT ma_khoa, ten_khoa, mo_ta FROM khoa
-       WHERE ma_khoa LIKE ? OR ten_khoa LIKE ? OR mo_ta LIKE ?
-       ORDER BY ${orderBy} LIMIT ? OFFSET ?`,
-      [keyword, keyword, keyword, _limit, offset]
-    );
-
-    res.json({ data: rows, meta: { total, page: _page, pages: Math.ceil(total / _limit) } });
-  } catch (err) {
-    console.error("[getAllKhoa]", err);
+    const [rows] = await pool.query("SELECT ma_khoa, ten_khoa FROM khoa");
+    res.json({ data: rows }); // ✅ đồng nhất format với FE
+  } catch (error) {
+    console.error("❌ Lỗi khi lấy danh sách khoa:", error);
     res.status(500).json({ error: "Lỗi khi lấy danh sách khoa" });
   }
 };
@@ -110,5 +91,23 @@ export const deleteKhoa = async (req, res) => {
         .json({ error: "Không thể xóa do có dữ liệu liên quan (FK constraint)" });
     }
     res.status(500).json({ error: "Lỗi khi xóa khoa" });
+  }
+};
+export const getLopTheoKhoa = async (req, res) => {
+  try {
+    const { ma_khoa } = req.params;
+    const [rows] = await pool.query(
+      `
+      SELECT l.ma_lop, l.ten_lop
+      FROM lop l
+      JOIN nganh n ON l.ma_nganh = n.ma_nganh
+      WHERE n.ma_khoa = ?
+      `,
+      [ma_khoa]
+    );
+    res.json(rows);
+  } catch (error) {
+    console.error("❌ Lỗi khi lấy lớp:", error);
+    res.status(500).json({ error: "Không thể lấy danh sách lớp" });
   }
 };

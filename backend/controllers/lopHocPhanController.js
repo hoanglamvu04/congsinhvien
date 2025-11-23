@@ -1,5 +1,8 @@
 import pool from "../config/db.js";
 
+/* ============================
+   📘 Lấy danh sách lớp học phần (toàn bộ)
+   ============================ */
 export const getAllLopHocPhan = async (req, res) => {
   try {
     const { q, trang_thai } = req.query;
@@ -7,6 +10,8 @@ export const getAllLopHocPhan = async (req, res) => {
     let sql = `
       SELECT lhp.*, 
              mh.ten_mon, 
+             n.ten_nganh,
+             k.ten_khoa,
              gv.ho_ten AS ten_giang_vien, 
              hk.ten_hoc_ky, 
              hk.ma_hoc_ky,
@@ -16,6 +21,8 @@ export const getAllLopHocPhan = async (req, res) => {
               AND dk.trang_thai = 'dangky') AS so_luong_da_dang_ky
       FROM lop_hoc_phan lhp
       JOIN mon_hoc mh ON lhp.ma_mon = mh.ma_mon
+      LEFT JOIN nganh n ON mh.ma_nganh = n.ma_nganh
+      LEFT JOIN khoa k ON n.ma_khoa = k.ma_khoa
       LEFT JOIN giang_vien gv ON lhp.ma_giang_vien = gv.ma_giang_vien
       JOIN hoc_ky hk ON lhp.ma_hoc_ky = hk.ma_hoc_ky
       WHERE 1=1
@@ -23,8 +30,8 @@ export const getAllLopHocPhan = async (req, res) => {
     const params = [];
 
     if (q) {
-      sql += ` AND (mh.ten_mon LIKE ? OR gv.ho_ten LIKE ? OR lhp.ma_lop_hp LIKE ?)`;
-      params.push(`%${q}%`, `%${q}%`, `%${q}%`);
+      sql += ` AND (mh.ten_mon LIKE ? OR gv.ho_ten LIKE ? OR lhp.ma_lop_hp LIKE ? OR n.ten_nganh LIKE ? OR k.ten_khoa LIKE ?)`;
+      params.push(`%${q}%`, `%${q}%`, `%${q}%`, `%${q}%`, `%${q}%`);
     }
 
     if (trang_thai) {
@@ -41,6 +48,77 @@ export const getAllLopHocPhan = async (req, res) => {
     res.status(500).json({ error: "Lỗi khi lấy danh sách lớp học phần" });
   }
 };
+
+/* ============================
+   📘 Lấy lớp học phần theo khoa (lọc theo người đăng nhập)
+   ============================ */
+export const getLopHocPhanTheoKhoa = async (req, res) => {
+  try {
+    const { q, trang_thai } = req.query;
+    const { role, ten_phong, ma_phong } = req.user;
+
+    const keyword = `%${q || ""}%`;
+    const params = [keyword, keyword, keyword, keyword];
+
+    // Admin / Phòng Đào Tạo xem toàn bộ
+    if (role === "admin" || ten_phong === "Phòng Đào Tạo") {
+      const [rows] = await pool.query(
+        `
+        SELECT lhp.*, mh.ten_mon, n.ten_nganh, k.ten_khoa, hk.ten_hoc_ky, hk.ma_hoc_ky, gv.ho_ten AS ten_giang_vien
+        FROM lop_hoc_phan lhp
+        JOIN mon_hoc mh ON lhp.ma_mon = mh.ma_mon
+        LEFT JOIN nganh n ON mh.ma_nganh = n.ma_nganh
+        LEFT JOIN khoa k ON n.ma_khoa = k.ma_khoa
+        LEFT JOIN giang_vien gv ON lhp.ma_giang_vien = gv.ma_giang_vien
+        JOIN hoc_ky hk ON lhp.ma_hoc_ky = hk.ma_hoc_ky
+        WHERE (mh.ten_mon LIKE ? OR gv.ho_ten LIKE ? OR n.ten_nganh LIKE ? OR k.ten_khoa LIKE ?)
+        ORDER BY hk.ma_hoc_ky DESC, mh.ten_mon ASC
+        `,
+        params
+      );
+      return res.json({ data: rows });
+    }
+
+    // Nhân viên khoa
+    if (role === "nhanvien" && ma_phong) {
+      const dynamicParams = [...params, ma_phong];
+      let sql = `
+        SELECT lhp.*, 
+               mh.ten_mon, 
+               n.ten_nganh, 
+               k.ten_khoa, 
+               hk.ten_hoc_ky, 
+               hk.ma_hoc_ky, 
+               gv.ho_ten AS ten_giang_vien
+        FROM lop_hoc_phan lhp
+        JOIN mon_hoc mh ON lhp.ma_mon = mh.ma_mon
+        LEFT JOIN nganh n ON mh.ma_nganh = n.ma_nganh
+        LEFT JOIN khoa k ON n.ma_khoa = k.ma_khoa
+        LEFT JOIN phong_ban pb ON k.ma_phong = pb.ma_phong
+        LEFT JOIN giang_vien gv ON lhp.ma_giang_vien = gv.ma_giang_vien
+        JOIN hoc_ky hk ON lhp.ma_hoc_ky = hk.ma_hoc_ky
+        WHERE (mh.ten_mon LIKE ? OR gv.ho_ten LIKE ? OR n.ten_nganh LIKE ? OR k.ten_khoa LIKE ?)
+          AND pb.ma_phong = ?
+      `;
+
+      if (trang_thai) {
+        sql += " AND lhp.trang_thai = ?";
+        dynamicParams.push(trang_thai);
+      }
+
+      sql += " ORDER BY hk.ma_hoc_ky DESC, mh.ten_mon ASC";
+
+      const [rows] = await pool.query(sql, dynamicParams);
+      return res.json({ data: rows });
+    }
+
+    return res.status(403).json({ message: "Không có quyền truy cập" });
+  } catch (error) {
+    console.error("[getLopHocPhanTheoKhoa]", error);
+    res.status(500).json({ error: "Lỗi khi lấy lớp học phần theo khoa" });
+  }
+};
+
 // 📘 Giảng viên xem danh sách lớp mình dạy
 export const getLopHocPhanByGiangVien = async (req, res) => {
   try {

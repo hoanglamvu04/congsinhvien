@@ -20,25 +20,32 @@ const ThongBao = () => {
   const [thongBaoList, setThongBaoList] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState(null);
-  const token = localStorage.getItem("token");
 
   // 📬 Lấy danh sách thông báo
+  const fetchThongBao = async () => {
+    try {
+      const res = await axios.get(`${API_URL}/api/thongbao`, {
+        withCredentials: true,
+      });
+      setThongBaoList(res.data.data || []);
+    } catch (err) {
+      console.error("❌ Lỗi khi tải thông báo:", err);
+      toast.error("Không thể tải thông báo!");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const res = await axios.get(`${API_URL}/api/thongbao`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        setThongBaoList(res.data.data || []);
-      } catch (err) {
-        console.error(err);
-        toast.error("❌ Không thể tải thông báo!");
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
-  }, [token]);
+    fetchThongBao();
+  }, []);
+
+  // ⛔ Đóng modal khi click ngoài hoặc nhấn ESC
+  useEffect(() => {
+    const handleEsc = (e) => e.key === "Escape" && setSelected(null);
+    window.addEventListener("keydown", handleEsc);
+    return () => window.removeEventListener("keydown", handleEsc);
+  }, []);
 
   if (loading)
     return (
@@ -57,9 +64,9 @@ const ThongBao = () => {
       </h2>
 
       {thongBaoList.length === 0 ? (
-        <p className="no-data">⚠️ Không có thông báo nào.</p>
+        <p className="no-data">📭 Không có thông báo nào.</p>
       ) : (
-        <div className="notice-list">
+        <div className="table-wrapper">
           <table className="data-table">
             <thead>
               <tr>
@@ -122,17 +129,19 @@ const ThongBao = () => {
 
       {/* 🧾 Modal xem chi tiết */}
       {selected && (
-        <div className="modal-overlay">
+        <div
+          className="modal-overlay"
+          onClick={(e) =>
+            e.target.classList.contains("modal-overlay") && setSelected(null)
+          }
+        >
           <div className="modal-content">
             <div className="modal-header">
               <h3>
                 <FaBullhorn style={{ color: "#007bff", marginRight: 8 }} />
                 {selected.tieu_de}
               </h3>
-              <FaTimes
-                className="close-icon"
-                onClick={() => setSelected(null)}
-              />
+              <FaTimes className="close-icon" onClick={() => setSelected(null)} />
             </div>
 
             <div className="modal-body">
@@ -161,7 +170,9 @@ const ThongBao = () => {
             </div>
 
             <div className="modal-footer">
-              <button onClick={() => setSelected(null)}>Đóng</button>
+              <button className="btn-close" onClick={() => setSelected(null)}>
+                Đóng
+              </button>
             </div>
           </div>
         </div>

@@ -36,17 +36,25 @@ export const getAllTkb = async (req, res) => {
   }
 };
 
-// 📘 Sinh viên xem lịch học của chính mình
+// 📘 Sinh viên xem lịch học của chính mình (CÓ LỌC)
 export const getTkbBySinhVien = async (req, res) => {
   try {
     const userId = req.user.id;
-    const [svRows] = await pool.query("SELECT ma_sinh_vien FROM sinh_vien WHERE id_tai_khoan = ?", [userId]);
-    if (svRows.length === 0) return res.status(404).json({ message: "Không tìm thấy sinh viên." });
+
+    const [svRows] = await pool.query(
+      "SELECT ma_sinh_vien FROM sinh_vien WHERE id_tai_khoan = ?",
+      [userId]
+    );
+    if (svRows.length === 0)
+      return res.status(404).json({ message: "Không tìm thấy sinh viên." });
+
     const ma_sinh_vien = svRows[0].ma_sinh_vien;
 
-    const [rows] = await pool.query(
-      `
-      SELECT bh.*, mh.ten_mon, gv.ho_ten AS ten_giang_vien, lhp.ma_lop_hp
+    // ===== ⚡ Query Params =====
+    const { hocky, mon, tuan_start, tuan_end } = req.query;
+
+    let query = `
+      SELECT bh.*, mh.ten_mon, gv.ho_ten AS ten_giang_vien, lhp.ma_lop_hp, lhp.ma_hoc_ky AS hoc_ky
       FROM buoi_hoc bh
       JOIN thoi_khoa_bieu tkb ON tkb.id_tkb = bh.id_tkb
       JOIN lop_hoc_phan lhp ON tkb.ma_lop_hp = lhp.ma_lop_hp
@@ -54,16 +62,39 @@ export const getTkbBySinhVien = async (req, res) => {
       JOIN giang_vien gv ON lhp.ma_giang_vien = gv.ma_giang_vien
       JOIN dang_ky_mon dk ON dk.ma_lop_hp = lhp.ma_lop_hp
       WHERE dk.ma_sinh_vien = ?
+    `;
+
+    const params = [ma_sinh_vien];
+
+    if (hocky) {
+      query += " AND lhp.ma_hoc_ky = ? ";
+      params.push(hocky);
+    }
+
+    if (mon) {
+      query += " AND mh.ten_mon = ? ";
+      params.push(mon);
+    }
+
+    // lọc theo ngày tuần
+    if (tuan_start && tuan_end) {
+      query += " AND bh.ngay_hoc BETWEEN ? AND ? ";
+      params.push(tuan_start, tuan_end);
+    }
+
+    query += `
       ORDER BY bh.ngay_hoc ASC, bh.tiet_bat_dau ASC
-      `,
-      [ma_sinh_vien]
-    );
+    `;
+
+    const [rows] = await pool.query(query, params);
+
     res.json({ data: rows });
   } catch (error) {
     console.error("❌ Lỗi khi lấy lịch học sinh viên:", error);
     res.status(500).json({ error: "Lỗi khi lấy lịch học thực tế." });
   }
 };
+
 
 // 📘 Giảng viên xem lịch giảng dạy
 export const getTkbByGiangVien = async (req, res) => {

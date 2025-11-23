@@ -1,32 +1,35 @@
 import pool from "../config/db.js";
 
 /**
- * 📘 Tạo thông báo (Admin)
+ * 📨 Tạo thông báo (Admin / Phòng đào tạo / Khoa)
  */
 export const createThongBao = async (req, res) => {
   try {
     const {
       tieu_de,
       noi_dung,
-      nguoi_gui,
       doi_tuong,
       ma_doi_tuong,
       tep_dinh_kem,
       trang_thai,
     } = req.body;
 
+    const nguoi_gui = req.user?.username || "Hệ thống";
+    const filter = req.filter || {}; // lấy khoa nếu có
+
     await pool.query(
       `
-      INSERT INTO thong_bao (tieu_de, noi_dung, nguoi_gui, doi_tuong, ma_doi_tuong, tep_dinh_kem, trang_thai)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO thong_bao (tieu_de, noi_dung, nguoi_gui, doi_tuong, ma_doi_tuong, ma_khoa, tep_dinh_kem, trang_thai, ngay_gui)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())
       `,
       [
         tieu_de,
         noi_dung,
         nguoi_gui,
         doi_tuong,
-        ma_doi_tuong,
-        tep_dinh_kem,
+        ma_doi_tuong || null,
+        filter.ma_khoa || null,
+        tep_dinh_kem || null,
         trang_thai || "hienthi",
       ]
     );
@@ -39,28 +42,22 @@ export const createThongBao = async (req, res) => {
 };
 
 /**
- * 📢 Lấy thông báo dành cho sinh viên hiện tại
- * Gồm:
- * - Thông báo toàn trường (tatca)
- * - Thông báo theo lớp (lop + ma_lop)
- * - Thông báo cá nhân (sinhvien + ma_sinh_vien)
+ * 📢 Lấy thông báo dành cho người dùng (Sinh viên)
  */
 export const getThongBaoByUser = async (req, res) => {
   try {
     const userId = req.user.id;
 
-    // Lấy mã sinh viên + mã lớp của người dùng
     const [svRows] = await pool.query(
-      "SELECT ma_sinh_vien, ma_lop FROM sinh_vien WHERE id_tai_khoan = ?",
+      "SELECT ma_sinh_vien, ma_lop, ma_khoa FROM sinh_vien WHERE id_tai_khoan = ?",
       [userId]
     );
 
-    if (svRows.length === 0)
-      return res.status(404).json({ error: "Không tìm thấy sinh viên." });
+    if (!svRows.length)
+      return res.status(404).json({ error: "Không tìm thấy sinh viên" });
 
-    const { ma_sinh_vien, ma_lop } = svRows[0];
+    const { ma_sinh_vien, ma_lop, ma_khoa } = svRows[0];
 
-    // Truy xuất tất cả thông báo liên quan
     const [rows] = await pool.query(
       `
       SELECT * FROM thong_bao
@@ -69,39 +66,69 @@ export const getThongBaoByUser = async (req, res) => {
           doi_tuong = 'tatca'
           OR (doi_tuong = 'lop' AND ma_doi_tuong = ?)
           OR (doi_tuong = 'sinhvien' AND ma_doi_tuong = ?)
+          OR (doi_tuong = 'khoa' AND ma_doi_tuong = ?)
         )
       ORDER BY ngay_gui DESC
       `,
-      [ma_lop, ma_sinh_vien]
+      [ma_lop, ma_sinh_vien, ma_khoa]
     );
 
     res.json({ data: rows });
   } catch (err) {
     console.error("[getThongBaoByUser]", err);
-    res.status(500).json({ error: "Lỗi khi lấy danh sách thông báo" });
+    res.status(500).json({ error: "Lỗi khi lấy thông báo" });
   }
 };
 
 /**
- * 📘 Lấy toàn bộ thông báo (Admin)
+ * 🧭 Lấy thông báo theo khoa (dùng filterByDepartment)
+ */
+export const getThongBaoTheoKhoa = async (req, res) => {
+  try {
+    const filter = req.filter || {};
+    const params = [];
+    let sql = `
+      SELECT tb.*, k.ten_khoa
+      FROM thong_bao tb
+      LEFT JOIN khoa k ON tb.ma_khoa = k.ma_khoa
+      WHERE 1=1
+    `;
+
+    if (!filter.all && filter.ma_khoa) {
+      sql += " AND tb.ma_khoa = ?";
+      params.push(filter.ma_khoa);
+    }
+
+    sql += " ORDER BY tb.ngay_gui DESC";
+
+    const [rows] = await pool.query(sql, params);
+    res.json({ data: rows });
+  } catch (err) {
+    console.error("[getThongBaoTheoKhoa]", err);
+    res.status(500).json({ error: "Lỗi khi lấy thông báo theo khoa" });
+  }
+};
+
+/**
+ * 🧾 Lấy toàn bộ thông báo (Admin)
  */
 export const getAllThongBao = async (req, res) => {
   try {
     const [rows] = await pool.query(`
-      SELECT id_thong_bao, tieu_de, noi_dung, nguoi_gui, doi_tuong, ma_doi_tuong,
-             tep_dinh_kem, trang_thai, ngay_gui
-      FROM thong_bao
-      ORDER BY ngay_gui DESC
+      SELECT tb.*, k.ten_khoa
+      FROM thong_bao tb
+      LEFT JOIN khoa k ON tb.ma_khoa = k.ma_khoa
+      ORDER BY tb.ngay_gui DESC
     `);
-    res.json(rows); // ← trả về mảng trực tiếp (FE đang dùng res.data)
+    res.json({ data: rows });
   } catch (err) {
     console.error("[getAllThongBao]", err);
-    res.status(500).json({ error: "Lỗi khi lấy danh sách toàn bộ thông báo" });
+    res.status(500).json({ error: "Lỗi khi lấy toàn bộ thông báo" });
   }
 };
 
 /**
- * 🧑‍🏫 Giảng viên gửi thông báo đến lớp học phần mình dạy
+ * 🧑‍🏫 Giảng viên gửi thông báo đến lớp học phần
  */
 export const createThongBaoGiangVien = async (req, res) => {
   try {
@@ -112,35 +139,28 @@ export const createThongBaoGiangVien = async (req, res) => {
       return res.status(400).json({ error: "Thiếu thông tin bắt buộc." });
     }
 
-    // 🔍 Lấy mã giảng viên theo tài khoản
     const [gvRows] = await pool.query(
       "SELECT ma_giang_vien, ho_ten FROM giang_vien WHERE id_tai_khoan = ?",
       [userId]
     );
-
-    if (gvRows.length === 0) {
+    if (!gvRows.length)
       return res.status(404).json({ error: "Không tìm thấy giảng viên." });
-    }
 
     const { ma_giang_vien, ho_ten } = gvRows[0];
 
-    // 🔍 Kiểm tra xem lớp có thuộc giảng viên này không
     const [check] = await pool.query(
       "SELECT * FROM lop_hoc_phan WHERE ma_lop_hp = ? AND ma_giang_vien = ?",
       [ma_lop_hp, ma_giang_vien]
     );
-
-    if (check.length === 0) {
+    if (!check.length)
       return res
         .status(403)
-        .json({ error: "Bạn không có quyền gửi thông báo cho lớp này." });
-    }
+        .json({ error: "Không có quyền gửi thông báo cho lớp này." });
 
-    // ✅ Gửi thông báo
     await pool.query(
       `
-      INSERT INTO thong_bao (tieu_de, noi_dung, nguoi_gui, doi_tuong, ma_doi_tuong, tep_dinh_kem, trang_thai)
-      VALUES (?, ?, ?, 'lophocphan', ?, ?, 'hienthi')
+      INSERT INTO thong_bao (tieu_de, noi_dung, nguoi_gui, doi_tuong, ma_doi_tuong, tep_dinh_kem, trang_thai, ngay_gui)
+      VALUES (?, ?, ?, 'lophocphan', ?, ?, 'hienthi', NOW())
       `,
       [tieu_de, noi_dung, ho_ten, ma_lop_hp, tep_dinh_kem || null]
     );
@@ -149,5 +169,21 @@ export const createThongBaoGiangVien = async (req, res) => {
   } catch (err) {
     console.error("[createThongBaoGiangVien]", err);
     res.status(500).json({ error: "Lỗi khi giảng viên gửi thông báo." });
+  }
+};
+
+/**
+ * ❌ Xóa thông báo (Admin/PDT/Khoa)
+ */
+export const deleteThongBao = async (req, res) => {
+  try {
+    const { id_thong_bao } = req.params;
+    await pool.query("DELETE FROM thong_bao WHERE id_thong_bao = ?", [
+      id_thong_bao,
+    ]);
+    res.json({ message: "🗑️ Đã xóa thông báo." });
+  } catch (err) {
+    console.error("[deleteThongBao]", err);
+    res.status(500).json({ error: "Lỗi khi xóa thông báo." });
   }
 };

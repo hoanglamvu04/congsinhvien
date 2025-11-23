@@ -8,6 +8,8 @@ const PhieuTraLoiManager = () => {
   const [list, setList] = useState([]);
   const [keyword, setKeyword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [editing, setEditing] = useState(null);
+
   const [form, setForm] = useState({
     id_khao_sat: "",
     ma_sinh_vien: "",
@@ -15,21 +17,19 @@ const PhieuTraLoiManager = () => {
     noi_dung_phan_hoi: "",
     an_danh: 0,
   });
-  const [editing, setEditing] = useState(null);
-  const token = localStorage.getItem("token");
 
   // 🔄 Lấy danh sách phiếu trả lời
   const fetchData = async () => {
     try {
       setLoading(true);
       const res = await axios.get(`${API_URL}/api/phieutraloi`, {
-        headers: { Authorization: `Bearer ${token}` },
+        withCredentials: true,
         params: keyword ? { q: keyword } : {},
       });
-      setList(res.data.data || []);
+      setList(res.data.data || res.data);
     } catch (err) {
-      console.error(err);
-      alert("❌ Lỗi khi tải dữ liệu!");
+      console.error("❌ Lỗi khi tải dữ liệu:", err);
+      alert("Không thể tải danh sách phiếu trả lời!");
     } finally {
       setLoading(false);
     }
@@ -43,19 +43,19 @@ const PhieuTraLoiManager = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!form.id_khao_sat || !form.ma_sinh_vien || !form.diem_danh_gia)
-      return alert("⚠️ Nhập đầy đủ mã khảo sát, mã sinh viên và điểm đánh giá!");
+      return alert("⚠️ Vui lòng nhập đầy đủ mã khảo sát, mã sinh viên và điểm đánh giá!");
 
     try {
       if (editing) {
         await axios.put(`${API_URL}/api/phieutraloi/${editing}`, form, {
-          headers: { Authorization: `Bearer ${token}` },
+          withCredentials: true,
         });
         alert("✅ Cập nhật phản hồi thành công!");
       } else {
         await axios.post(`${API_URL}/api/phieutraloi/admin`, form, {
-          headers: { Authorization: `Bearer ${token}` },
+          withCredentials: true,
         });
-        alert("✅ Thêm phản hồi thành công!");
+        alert("✅ Thêm phản hồi mới thành công!");
       }
 
       setForm({
@@ -68,12 +68,12 @@ const PhieuTraLoiManager = () => {
       setEditing(null);
       fetchData();
     } catch (err) {
-      console.error(err);
-      alert(err.response?.data?.error || "❌ Lỗi khi lưu phản hồi!");
+      console.error("❌ Lỗi khi lưu phản hồi:", err);
+      alert(err.response?.data?.error || "Không thể lưu phản hồi!");
     }
   };
 
-  // ✏️ Chọn để sửa
+  // ✏️ Sửa phản hồi
   const handleEdit = (item) => {
     setEditing(item.id_tra_loi);
     setForm({
@@ -90,21 +90,22 @@ const PhieuTraLoiManager = () => {
     if (!window.confirm("Bạn có chắc muốn xóa phản hồi này không?")) return;
     try {
       await axios.delete(`${API_URL}/api/phieutraloi/${id}`, {
-        headers: { Authorization: `Bearer ${token}` },
+        withCredentials: true,
       });
-      alert("✅ Đã xóa phản hồi!");
+      alert("🗑️ Đã xóa phản hồi!");
       fetchData();
     } catch (err) {
-      console.error(err);
-      alert("❌ Lỗi khi xóa phản hồi!");
+      console.error("❌ Lỗi khi xóa phản hồi:", err);
+      alert(err.response?.data?.error || "Không thể xóa phản hồi!");
     }
   };
 
+  // 🧭 Giao diện chính
   return (
     <div className="admin-dashboard">
       <h1>📋 Quản lý phiếu trả lời khảo sát</h1>
 
-      {/* 🔍 Tìm kiếm */}
+      {/* 🔍 Thanh tìm kiếm */}
       <div className="filter-bar">
         <input
           type="text"
@@ -112,6 +113,7 @@ const PhieuTraLoiManager = () => {
           value={keyword}
           onChange={(e) => setKeyword(e.target.value)}
         />
+        <button onClick={fetchData}>🔄 Làm mới</button>
       </div>
 
       {/* 🧩 Form thêm/sửa phản hồi */}
@@ -143,7 +145,7 @@ const PhieuTraLoiManager = () => {
         />
         <select
           value={form.an_danh}
-          onChange={(e) => setForm({ ...form, an_danh: e.target.value })}
+          onChange={(e) => setForm({ ...form, an_danh: Number(e.target.value) })}
         >
           <option value={0}>Hiện tên</option>
           <option value={1}>Ẩn danh</option>
@@ -169,10 +171,10 @@ const PhieuTraLoiManager = () => {
         )}
       </form>
 
-      {/* 📋 Bảng danh sách */}
+      {/* 📋 Bảng dữ liệu phản hồi */}
       <div className="table-container">
         {loading ? (
-          <p>Đang tải...</p>
+          <p>⏳ Đang tải...</p>
         ) : (
           <table className="data-table">
             <thead>
@@ -199,14 +201,16 @@ const PhieuTraLoiManager = () => {
                     <td>{item.id_tra_loi}</td>
                     <td>{item.id_khao_sat}</td>
                     <td>{item.ma_sinh_vien}</td>
-                    <td>{item.ho_ten}</td>
+                    <td>{item.ho_ten || "—"}</td>
                     <td>{item.diem_danh_gia}⭐</td>
                     <td>{item.noi_dung_phan_hoi || "—"}</td>
                     <td>{item.an_danh ? "Ẩn danh" : "Hiện tên"}</td>
                     <td>
-                      {new Date(item.ngay_tra_loi).toLocaleString("vi-VN", {
-                        hour12: false,
-                      })}
+                      {item.ngay_tra_loi
+                        ? new Date(item.ngay_tra_loi).toLocaleString("vi-VN", {
+                            hour12: false,
+                          })
+                        : "—"}
                     </td>
                     <td>
                       <button onClick={() => handleEdit(item)}>✏️</button>

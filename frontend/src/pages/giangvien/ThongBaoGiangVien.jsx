@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
-import { toast } from "react-toastify";
+import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import "../../styles/admin/admin.css";
 
 const API_URL = process.env.REACT_APP_API_URL || "http://localhost:5000";
 
 const ThongBaoGiangVien = () => {
-  const token = localStorage.getItem("token");
   const [lopList, setLopList] = useState([]);
   const [form, setForm] = useState({
     ma_lop_hp: "",
@@ -16,15 +16,15 @@ const ThongBaoGiangVien = () => {
   });
   const [sending, setSending] = useState(false);
 
-  // 📘 Lấy danh sách lớp học phần mà giảng viên đang dạy
+  // 🔹 Lấy danh sách lớp học phần giảng viên đang dạy
   const fetchLopHocPhan = async () => {
     try {
       const res = await axios.get(`${API_URL}/api/lophocphan/giangvien`, {
-        headers: { Authorization: `Bearer ${token}` },
+        withCredentials: true,
       });
       setLopList(res.data.data || []);
     } catch (err) {
-      console.error("❌ Lỗi khi lấy danh sách lớp học phần:", err);
+      console.error("❌ Lỗi khi lấy lớp học phần:", err);
       toast.error("Không thể tải danh sách lớp học phần!");
     }
   };
@@ -36,12 +36,34 @@ const ThongBaoGiangVien = () => {
   // 📤 Gửi thông báo
   const handleSubmit = async (e) => {
     e.preventDefault();
+
     if (!form.ma_lop_hp || !form.tieu_de || !form.noi_dung) {
-      toast.warn("Vui lòng nhập đầy đủ thông tin bắt buộc!");
+      toast.warn("⚠️ Vui lòng nhập đầy đủ thông tin bắt buộc!");
       return;
     }
 
+    // 🧩 Kiểm tra tệp (nếu có)
+    if (form.tep_dinh_kem) {
+      const file = form.tep_dinh_kem;
+      const allowed = [
+        "application/pdf",
+        "image/jpeg",
+        "image/png",
+        "application/vnd.ms-excel",
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      ];
+      if (!allowed.includes(file.type)) {
+        toast.error("❌ Chỉ chấp nhận file PDF, JPG, PNG, Word, Excel!");
+        return;
+      }
+      if (file.size > 10 * 1024 * 1024) {
+        toast.error("❌ Kích thước file tối đa 10MB!");
+        return;
+      }
+    }
+
     setSending(true);
+
     try {
       const formData = new FormData();
       formData.append("ma_lop_hp", form.ma_lop_hp);
@@ -50,80 +72,66 @@ const ThongBaoGiangVien = () => {
       if (form.tep_dinh_kem) formData.append("tep_dinh_kem", form.tep_dinh_kem);
 
       await axios.post(`${API_URL}/api/thongbao/giangvien`, formData, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "multipart/form-data",
-        },
+        withCredentials: true,
+        headers: { "Content-Type": "multipart/form-data" },
       });
 
       toast.success("📢 Gửi thông báo thành công!");
       setForm({ ma_lop_hp: "", tieu_de: "", noi_dung: "", tep_dinh_kem: null });
+      window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (err) {
       console.error("❌ Lỗi khi gửi thông báo:", err);
-      toast.error("Không thể gửi thông báo. Kiểm tra console để biết chi tiết!");
+      toast.error("Không thể gửi thông báo, vui lòng thử lại!");
     } finally {
       setSending(false);
     }
   };
 
   return (
-    <div className="container mt-4">
-      <h3>📢 Gửi thông báo cho lớp học phần</h3>
-      <form onSubmit={handleSubmit} className="mt-3">
-        <div className="mb-3">
-          <label className="form-label fw-bold">Lớp học phần:</label>
-          <select
-            className="form-select"
-            value={form.ma_lop_hp}
-            onChange={(e) => setForm({ ...form, ma_lop_hp: e.target.value })}
-          >
-            <option value="">-- Chọn lớp học phần --</option>
-            {lopList.map((lop) => (
-              <option key={lop.ma_lop_hp} value={lop.ma_lop_hp}>
-                {lop.ma_lop_hp} - {lop.ten_mon}
-              </option>
-            ))}
-          </select>
-        </div>
+    <div className="admin-dashboard">
+      <ToastContainer position="top-center" autoClose={2500} />
 
-        <div className="mb-3">
-          <label className="form-label fw-bold">Tiêu đề:</label>
-          <input
-            type="text"
-            className="form-control"
-            value={form.tieu_de}
-            onChange={(e) => setForm({ ...form, tieu_de: e.target.value })}
-            placeholder="Nhập tiêu đề thông báo..."
-          />
-        </div>
+      <h1>📢 Gửi thông báo đến sinh viên</h1>
 
-        <div className="mb-3">
-          <label className="form-label fw-bold">Nội dung:</label>
-          <textarea
-            className="form-control"
-            rows="6"
-            value={form.noi_dung}
-            onChange={(e) => setForm({ ...form, noi_dung: e.target.value })}
-            placeholder="Nhập nội dung thông báo..."
-          ></textarea>
-        </div>
-
-        <div className="mb-3">
-          <label className="form-label fw-bold">Tệp đính kèm (tuỳ chọn):</label>
-          <input
-            type="file"
-            className="form-control"
-            onChange={(e) =>
-              setForm({ ...form, tep_dinh_kem: e.target.files[0] })
-            }
-          />
-        </div>
-
-        <button
-          type="submit"
-          className="btn btn-primary"
-          disabled={sending}
+      <form className="create-form" onSubmit={handleSubmit}>
+        <label>🎓 Lớp học phần:</label>
+        <select
+          value={form.ma_lop_hp}
+          onChange={(e) => setForm({ ...form, ma_lop_hp: e.target.value })}
         >
+          <option value="">-- Chọn lớp học phần --</option>
+          {lopList.map((lop) => (
+            <option key={lop.ma_lop_hp} value={lop.ma_lop_hp}>
+              {lop.ma_lop_hp} - {lop.ten_mon}
+            </option>
+          ))}
+        </select>
+
+        <label>📝 Tiêu đề:</label>
+        <input
+          type="text"
+          placeholder="Nhập tiêu đề thông báo..."
+          value={form.tieu_de}
+          onChange={(e) => setForm({ ...form, tieu_de: e.target.value })}
+        />
+
+        <label>📄 Nội dung:</label>
+        <textarea
+          rows="6"
+          placeholder="Nhập nội dung chi tiết..."
+          value={form.noi_dung}
+          onChange={(e) => setForm({ ...form, noi_dung: e.target.value })}
+        ></textarea>
+
+        <label>📎 Tệp đính kèm (tuỳ chọn):</label>
+        <input
+          type="file"
+          onChange={(e) =>
+            setForm({ ...form, tep_dinh_kem: e.target.files[0] })
+          }
+        />
+
+        <button type="submit" disabled={sending}>
           {sending ? "⏳ Đang gửi..." : "📨 Gửi thông báo"}
         </button>
       </form>

@@ -1,0 +1,87 @@
+.sv-detail-container {
+  background: #fff;
+  border-radius: 10px;
+  padding: 20px;
+  margin: 10px auto;
+  max-width: 950px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+}
+
+.tab-menu {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 15px;
+}
+
+.tab-menu button {
+  background: #f1f3f5;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.tab-menu button.active {
+  background: #007bff;
+  color: white;
+}
+
+.tab-content {
+  border-top: 2px solid #e5e5e5;
+  padding-top: 15px;
+}
+
+.info-card {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+}
+
+.info-card .avatar {
+  width: 140px;
+  height: 140px;
+  border-radius: 10px;
+  object-fit: cover;
+  border: 2px solid #007bff;
+}
+
+.info-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+}
+
+.info-table th, .info-table td {
+  border: 1px solid #ddd;
+  padding: 8px 10px;
+  text-align: left;
+}
+
+.info-table th {
+  background: #f7f7f7;
+  font-weight: bold;
+}
+
+.list {
+  padding-left: 20px;
+}
+
+.loading, .error {
+  text-align: center;
+  padding: 20px;
+  color: gray;
+}
+.status.green {
+  color: #008000;
+  font-weight: bold;
+}
+.status.red {
+  color: #d60000;
+  font-weight: bold;
+}

@@ -9,6 +9,8 @@ const NganhManager = () => {
   const [khoaList, setKhoaList] = useState([]);
   const [keyword, setKeyword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [editing, setEditing] = useState(null);
+
   const [form, setForm] = useState({
     ma_nganh: "",
     ten_nganh: "",
@@ -16,33 +18,34 @@ const NganhManager = () => {
     loai_nganh: "",
     mo_ta: "",
   });
-  const [editing, setEditing] = useState(null);
-  const token = localStorage.getItem("token");
 
+  // 🔄 Lấy danh sách ngành
   const fetchNganh = async () => {
     try {
       setLoading(true);
       const res = await axios.get(`${API_URL}/api/nganh`, {
-        headers: { Authorization: `Bearer ${token}` },
+        withCredentials: true,
         params: { q: keyword },
       });
-      setNganhList(res.data.data || []);
-    } catch {
-      alert("Lỗi khi tải danh sách ngành!");
+      setNganhList(res.data.data || res.data);
+    } catch (err) {
+      console.error("❌ Lỗi khi tải danh sách ngành:", err);
+      alert("Không thể tải danh sách ngành!");
     } finally {
       setLoading(false);
     }
   };
 
+  // 🔄 Lấy danh sách khoa
   const fetchKhoa = async () => {
     try {
       const res = await axios.get(`${API_URL}/api/khoa`, {
-        headers: { Authorization: `Bearer ${token}` },
+        withCredentials: true,
       });
       const data = Array.isArray(res.data) ? res.data : res.data.data || [];
       setKhoaList(data);
-    } catch {
-      console.warn("Không thể tải danh sách khoa");
+    } catch (err) {
+      console.warn("⚠️ Không thể tải danh sách khoa:", err);
     }
   };
 
@@ -51,58 +54,73 @@ const NganhManager = () => {
     fetchNganh();
   }, [keyword]);
 
+  // ➕ Thêm hoặc sửa ngành
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!form.ma_nganh || !form.ten_nganh || !form.ma_khoa)
-      return alert("Điền đủ Mã ngành, Tên ngành và Khoa!");
+      return alert("⚠️ Vui lòng nhập đầy đủ Mã ngành, Tên ngành và Khoa!");
+
     try {
       if (editing) {
         await axios.put(`${API_URL}/api/nganh/${editing}`, form, {
-          headers: { Authorization: `Bearer ${token}` },
+          withCredentials: true,
         });
         alert("✅ Cập nhật ngành thành công!");
       } else {
         await axios.post(`${API_URL}/api/nganh`, form, {
-          headers: { Authorization: `Bearer ${token}` },
+          withCredentials: true,
         });
-        alert("✅ Thêm ngành thành công!");
+        alert("✅ Thêm ngành mới thành công!");
       }
-      setForm({ ma_nganh: "", ten_nganh: "", ma_khoa: "", loai_nganh: "", mo_ta: "" });
+
+      setForm({
+        ma_nganh: "",
+        ten_nganh: "",
+        ma_khoa: "",
+        loai_nganh: "",
+        mo_ta: "",
+      });
       setEditing(null);
       fetchNganh();
     } catch (err) {
-      alert(err.response?.data?.error || "Lỗi khi lưu ngành!");
+      console.error("❌ Lỗi khi lưu ngành:", err);
+      alert(err.response?.data?.error || "Không thể lưu ngành!");
     }
   };
 
-  const handleDelete = async (ma_nganh) => {
-    if (!window.confirm("Bạn có chắc muốn xóa ngành này không?")) return;
-    try {
-      await axios.delete(`${API_URL}/api/nganh/${ma_nganh}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      alert("✅ Đã xóa ngành!");
-      fetchNganh();
-    } catch (err) {
-      alert(err.response?.data?.error || "Lỗi khi xóa ngành!");
-    }
-  };
-
+  // ✏️ Chọn để sửa
   const handleEdit = (item) => {
     setEditing(item.ma_nganh);
     setForm({
-      ma_nganh: item.ma_nganh,
-      ten_nganh: item.ten_nganh,
+      ma_nganh: item.ma_nganh || "",
+      ten_nganh: item.ten_nganh || "",
       ma_khoa: item.ma_khoa || "",
       loai_nganh: item.loai_nganh || "",
       mo_ta: item.mo_ta || "",
     });
   };
 
+  // 🗑️ Xóa ngành
+  const handleDelete = async (ma_nganh) => {
+    if (!window.confirm("Bạn có chắc muốn xóa ngành này không?")) return;
+    try {
+      await axios.delete(`${API_URL}/api/nganh/${ma_nganh}`, {
+        withCredentials: true,
+      });
+      alert("🗑️ Đã xóa ngành!");
+      fetchNganh();
+    } catch (err) {
+      console.error("❌ Lỗi khi xóa ngành:", err);
+      alert(err.response?.data?.error || "Không thể xóa ngành!");
+    }
+  };
+
+  // 🧭 Giao diện
   return (
     <div className="admin-dashboard">
       <h1>📚 Quản lý ngành</h1>
 
+      {/* 🔍 Thanh tìm kiếm */}
       <div className="filter-bar">
         <input
           type="text"
@@ -112,6 +130,7 @@ const NganhManager = () => {
         />
       </div>
 
+      {/* 🧩 Form thêm / sửa */}
       <form className="create-form" onSubmit={handleSubmit}>
         <h3>{editing ? "✏️ Sửa ngành" : "➕ Thêm ngành mới"}</h3>
         {!editing && (
@@ -157,7 +176,13 @@ const NganhManager = () => {
             type="button"
             onClick={() => {
               setEditing(null);
-              setForm({ ma_nganh: "", ten_nganh: "", ma_khoa: "", loai_nganh: "", mo_ta: "" });
+              setForm({
+                ma_nganh: "",
+                ten_nganh: "",
+                ma_khoa: "",
+                loai_nganh: "",
+                mo_ta: "",
+              });
             }}
           >
             Hủy
@@ -165,6 +190,7 @@ const NganhManager = () => {
         )}
       </form>
 
+      {/* 📋 Bảng danh sách ngành */}
       <div className="table-container">
         {loading ? (
           <p>Đang tải...</p>

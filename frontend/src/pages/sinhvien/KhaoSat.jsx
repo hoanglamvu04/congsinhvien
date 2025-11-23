@@ -1,7 +1,5 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
-import { ToastContainer, toast } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
 import {
   FaPoll,
   FaCheckCircle,
@@ -12,15 +10,15 @@ import {
   FaPaperPlane,
   FaArrowLeft,
   FaUserSecret,
-  FaSearch,
   FaRegClock,
 } from "react-icons/fa";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 import "../../styles/KhaoSat.css";
 
 const API_URL = process.env.REACT_APP_API_URL || "http://localhost:5000";
 
 const KhaoSat = () => {
-  const token = localStorage.getItem("token");
   const [khaoSats, setKhaoSats] = useState([]);
   const [selected, setSelected] = useState(null);
   const [form, setForm] = useState({
@@ -32,29 +30,33 @@ const KhaoSat = () => {
   const [loading, setLoading] = useState(true);
 
   // 📘 Lấy danh sách khảo sát
-  useEffect(() => {
-    const fetchKhaoSat = async () => {
-      try {
-        const res = await axios.get(`${API_URL}/api/khaosat`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        setKhaoSats(res.data.data || []);
-      } catch (err) {
-        console.error("❌ Lỗi khi tải khảo sát:", err);
-        toast.error("Không thể tải danh sách khảo sát!");
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchKhaoSat();
-  }, [token]);
+  const fetchKhaoSat = async () => {
+    try {
+      const res = await axios.get(`${API_URL}/api/khaosat`, {
+        withCredentials: true,
+      });
+      const list = res.data.data || [];
+      setKhaoSats(list);
 
-  // 📋 Lấy danh sách khảo sát đã trả lời (FE)
+      // cập nhật lại danh sách đã trả lời
+      const stored = JSON.parse(localStorage.getItem("daTraLoi") || "[]");
+      const valid = stored.filter((id) =>
+        list.some((ks) => ks.id_khao_sat === id)
+      );
+      setDaTraLoi(valid);
+    } catch (err) {
+      console.error("❌ Lỗi khi tải khảo sát:", err);
+      toast.error("Không thể tải danh sách khảo sát!");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const stored = JSON.parse(localStorage.getItem("daTraLoi") || "[]");
-    setDaTraLoi(stored);
+    fetchKhaoSat();
   }, []);
 
+  // 🧭 Chọn khảo sát
   const handleSelect = (ks) => {
     if (ks.trang_thai !== "mo") {
       toast.warning("⛔ Khảo sát này đã đóng, bạn không thể trả lời!");
@@ -64,10 +66,10 @@ const KhaoSat = () => {
     setForm({ diem_danh_gia: 0, noi_dung_phan_hoi: "", an_danh: false });
   };
 
-  // 🧩 Gửi phản hồi khảo sát
+  // 🧩 Gửi phản hồi
   const guiPhieu = async () => {
     if (!form.diem_danh_gia || !form.noi_dung_phan_hoi.trim()) {
-      toast.warning("Vui lòng chọn điểm và nhập nội dung phản hồi!");
+      toast.warning("⚠️ Vui lòng chọn điểm và nhập phản hồi!");
       return;
     }
     try {
@@ -76,13 +78,13 @@ const KhaoSat = () => {
         {
           id_khao_sat: selected.id_khao_sat,
           diem_danh_gia: form.diem_danh_gia,
-          noi_dung_phan_hoi: form.noi_dung_phan_hoi,
+          noi_dung_phan_hoi: form.noi_dung_phan_hoi.trim(),
           an_danh: form.an_danh,
         },
-        { headers: { Authorization: `Bearer ${token}` } }
+        { withCredentials: true }
       );
       toast.success("✅ Gửi phản hồi thành công!");
-      const newList = [...daTraLoi, selected.id_khao_sat];
+      const newList = [...new Set([...daTraLoi, selected.id_khao_sat])];
       setDaTraLoi(newList);
       localStorage.setItem("daTraLoi", JSON.stringify(newList));
       setSelected(null);
@@ -94,14 +96,14 @@ const KhaoSat = () => {
 
   return (
     <div className="page-container">
-      <ToastContainer position="top-center" autoClose={2000} />
+      <ToastContainer position="top-center" autoClose={2200} />
 
       <h2 className="title-header">
         <FaPoll style={{ color: "#007bff", marginRight: 8 }} />
         Khảo sát & Đánh giá
       </h2>
 
-      {/* Danh sách khảo sát */}
+      {/* 📋 Danh sách khảo sát */}
       {!selected ? (
         <div className="survey-list">
           {loading ? (
@@ -109,7 +111,7 @@ const KhaoSat = () => {
               <FaRegClock style={{ marginRight: 6 }} /> Đang tải dữ liệu...
             </p>
           ) : khaoSats.length === 0 ? (
-            <p>📭 Hiện không có khảo sát nào dành cho bạn.</p>
+            <p className="no-data">📭 Hiện chưa có khảo sát nào dành cho bạn.</p>
           ) : (
             <table className="data-table">
               <thead>
@@ -192,7 +194,7 @@ const KhaoSat = () => {
           </div>
 
           <textarea
-            rows="4"
+            rows="5"
             placeholder="Nhập nội dung phản hồi của bạn..."
             value={form.noi_dung_phan_hoi}
             onChange={(e) =>

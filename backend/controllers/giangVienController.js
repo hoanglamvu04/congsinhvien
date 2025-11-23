@@ -25,6 +25,41 @@ export const getAllGiangVien = async (req, res) => {
     res.status(500).json({ error: "Lỗi khi lấy danh sách giảng viên" });
   }
 };
+export const getGiangVienTheoKhoa = async (req, res) => {
+  try {
+    const { q = "" } = req.query;
+    const keyword = `%${q}%`;
+    const filter = req.filter || {};
+    const params = [keyword, keyword, keyword, keyword];
+
+    let sql = `
+      SELECT gv.*, k.ten_khoa, pb.ten_phong
+      FROM giang_vien gv
+      LEFT JOIN khoa k ON gv.ma_khoa = k.ma_khoa
+      LEFT JOIN phong_ban pb ON k.ma_phong = pb.ma_phong
+      WHERE (
+        gv.ma_giang_vien LIKE ? OR
+        gv.ho_ten LIKE ? OR
+        gv.hoc_vi LIKE ? OR
+        k.ten_khoa LIKE ?
+      )
+    `;
+
+    // 🏛️ Nếu không phải admin / PĐT thì lọc theo phòng
+    if (!filter.all && filter.ma_phong) {
+      sql += " AND k.ma_phong = ?";
+      params.push(filter.ma_phong);
+    }
+
+    sql += " ORDER BY gv.ho_ten ASC";
+
+    const [rows] = await pool.query(sql, params);
+    res.json({ data: rows });
+  } catch (error) {
+    console.error("[getGiangVienTheoKhoa]", error);
+    res.status(500).json({ error: "Lỗi khi lấy giảng viên theo khoa" });
+  }
+};
 
 // ➕ Thêm giảng viên (Admin)
 export const createGiangVien = async (req, res) => {

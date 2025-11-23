@@ -8,19 +8,18 @@ const LichSuHoatDongManager = () => {
   const [logs, setLogs] = useState([]);
   const [keyword, setKeyword] = useState("");
   const [loading, setLoading] = useState(false);
-  const token = localStorage.getItem("token");
 
   // 📘 Lấy toàn bộ lịch sử hoạt động
   const fetchLogs = async () => {
     try {
       setLoading(true);
       const res = await axios.get(`${API_URL}/api/lichsuhoatdong`, {
-        headers: { Authorization: `Bearer ${token}` },
+        withCredentials: true, // ✅ cookie JWT tự động gửi
       });
       setLogs(res.data || []);
     } catch (err) {
-      console.error(err);
-      alert("❌ Lỗi khi tải danh sách lịch sử hoạt động!");
+      console.error("❌ Lỗi khi tải danh sách lịch sử hoạt động:", err);
+      alert("Không thể tải danh sách lịch sử hoạt động!");
     } finally {
       setLoading(false);
     }

@@ -1,7 +1,9 @@
+// server.js
 import express from "express";
 import http from "http";
 import { Server } from "socket.io";
 import cors from "cors";
+import cookieParser from "cookie-parser"; // ✅ Dùng để đọc cookie HTTP-only
 import dotenv from "dotenv";
 dotenv.config({ quiet: true });
 import path from "path";
@@ -42,14 +44,25 @@ import buoiHocRoutes from "./routes/buoiHocRoutes.js";
 import { initSocket } from "./socket/socketHandler.js";
 
 const app = express();
-app.use(cors());
+
+// 🧩 Bật cookie-parser & cấu hình CORS cho cookie
+app.use(cookieParser());
+app.use(
+  cors({
+    origin: "http://localhost:3000", // domain frontend React
+    credentials: true, // ✅ Cho phép gửi cookie qua request
+  })
+);
+
+// Cho phép nhận JSON
 app.use(express.json());
 
-// 🖼️ Static
+// 🖼️ Cấu hình static cho file upload
 app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 
-// ✅ Routes
+// ✅ Khai báo các routes API
 app.use("/api/auth", authRoutes);
+app.use("/api/user", userRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/khoa", khoaRoutes);
 app.use("/api/nganh", nganhRoutes);
@@ -65,7 +78,7 @@ app.use("/api/diem", diemRoutes);
 app.use("/api/thilai", thiLaiRoutes);
 app.use("/api/diemrenluyen", diemRenLuyenRoutes);
 app.use("/api/hocphi", hocPhiRoutes);
-app.use("/api/giaodich", giaoDichRoutes);
+app.use("/api/giaodichhocphi", giaoDichRoutes);
 app.use("/api/hocbong", hocBongRoutes);
 app.use("/api/khenthuong", khenThuongRoutes);
 app.use("/api/kyluat", kyLuatRoutes);
@@ -78,12 +91,20 @@ app.use("/api/lichsuhoatdong", lichSuHoatDongRoutes);
 app.use("/api/diemdanh", diemDanhRoutes);
 app.use("/api/buoihoc", buoiHocRoutes);
 
-// ⚡ Tạo server & gắn socket.io
+// ⚡ Tạo HTTP server và gắn socket.io
 const server = http.createServer(app);
-const io = new Server(server, { cors: { origin: "*" } });
+const io = new Server(server, {
+  cors: {
+    origin: "http://localhost:3000",
+    credentials: true,
+  },
+});
 
-// 🔥 Khởi tạo Socket Handler
+// 🔥 Khởi tạo socket handler
 initSocket(io);
 
+// 🚀 Khởi động server
 const PORT = process.env.PORT || 5000;
-server.listen(PORT, () => console.log(`🚀 Server + Socket running on port ${PORT}`));
+server.listen(PORT, () => {
+  console.log(`🚀 Server + Socket running on port ${PORT}`);
+});

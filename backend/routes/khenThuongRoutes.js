@@ -6,13 +6,14 @@ import {
   createKhenThuong,
   updateKhenThuong,
   deleteKhenThuong,
+  getKhenThuongBySinhVien 
 } from "../controllers/khenThuongController.js";
 
 const router = express.Router();
 
 // 📘 Lấy danh sách (admin hoặc sinh viên)
 router.get("/", verifyToken, getAllKhenThuong);
-
+router.get("/sinhvien/:id", verifyToken, getKhenThuongBySinhVien);
 // ➕ Thêm (admin)
 router.post("/", verifyToken, isAdmin, createKhenThuong);
 

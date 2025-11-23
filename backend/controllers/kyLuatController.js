@@ -42,7 +42,22 @@ export const getAllKyLuat = async (req, res) => {
     res.status(500).json({ error: "Lỗi khi lấy danh sách kỷ luật" });
   }
 };
+export const getKyLuatBySinhVien = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const [rows] = await pool.query(`
+      SELECT kl.*
+      FROM ky_luat kl
+      WHERE kl.ma_sinh_vien = ?
+      ORDER BY kl.ngay_quyet_dinh DESC
+    `, [id]);
 
+    res.json(rows);
+  } catch (error) {
+    console.error("❌ Lỗi khi lấy kỷ luật:", error);
+    res.status(500).json({ error: "Không thể lấy thông tin kỷ luật" });
+  }
+};
 /**
  * ➕ Thêm kỷ luật (Admin)
  */

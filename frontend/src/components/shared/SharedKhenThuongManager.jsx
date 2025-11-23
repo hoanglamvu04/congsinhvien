@@ -16,20 +16,19 @@ const KhenThuongManager = () => {
     so_tien: "",
   });
   const [editing, setEditing] = useState(null);
-  const token = localStorage.getItem("token");
 
-  // 🔄 Lấy danh sách khen thưởng
+  // 🔹 Lấy danh sách khen thưởng
   const fetchKhenThuong = async () => {
     try {
       setLoading(true);
       const res = await axios.get(`${API_URL}/api/khenthuong`, {
-        headers: { Authorization: `Bearer ${token}` },
+        withCredentials: true, // ✅ Cookie JWT tự động gửi
         params: keyword ? { q: keyword } : {},
       });
       setKhenThuongList(res.data.data || []);
     } catch (err) {
-      console.error(err);
-      alert("❌ Lỗi khi tải danh sách khen thưởng!");
+      console.error("❌ Lỗi khi tải danh sách khen thưởng:", err);
+      alert("Không thể tải danh sách khen thưởng!");
     } finally {
       setLoading(false);
     }
@@ -38,10 +37,7 @@ const KhenThuongManager = () => {
   // 🧭 Load dữ liệu ban đầu & khi tìm kiếm
   useEffect(() => {
     fetchKhenThuong();
-  }, []);
-
-  useEffect(() => {
-    fetchKhenThuong();
+    // eslint-disable-next-line
   }, [keyword]);
 
   // ➕ Thêm hoặc sửa khen thưởng
@@ -53,15 +49,13 @@ const KhenThuongManager = () => {
 
     try {
       if (editing) {
-        await axios.put(
-          `${API_URL}/api/khenthuong/${editing}`,
-          form,
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
+        await axios.put(`${API_URL}/api/khenthuong/${editing}`, form, {
+          withCredentials: true,
+        });
         alert("✅ Cập nhật khen thưởng thành công!");
       } else {
         await axios.post(`${API_URL}/api/khenthuong`, form, {
-          headers: { Authorization: `Bearer ${token}` },
+          withCredentials: true,
         });
         alert("✅ Thêm khen thưởng thành công!");
       }
@@ -76,8 +70,8 @@ const KhenThuongManager = () => {
       setEditing(null);
       fetchKhenThuong();
     } catch (err) {
-      console.error(err);
-      alert(err.response?.data?.error || "❌ Lỗi khi lưu khen thưởng!");
+      console.error("❌ Lỗi khi lưu khen thưởng:", err);
+      alert(err.response?.data?.error || "Không thể lưu khen thưởng!");
     }
   };
 
@@ -98,13 +92,13 @@ const KhenThuongManager = () => {
     if (!window.confirm("Bạn có chắc muốn xóa khen thưởng này không?")) return;
     try {
       await axios.delete(`${API_URL}/api/khenthuong/${id}`, {
-        headers: { Authorization: `Bearer ${token}` },
+        withCredentials: true,
       });
-      alert("✅ Đã xóa khen thưởng!");
+      alert("🗑️ Đã xóa khen thưởng!");
       fetchKhenThuong();
     } catch (err) {
-      console.error(err);
-      alert("❌ Lỗi khi xóa khen thưởng!");
+      console.error("❌ Lỗi khi xóa khen thưởng:", err);
+      alert("Không thể xóa khen thưởng!");
     }
   };
 
@@ -114,6 +108,7 @@ const KhenThuongManager = () => {
     return Number(num).toLocaleString("vi-VN");
   };
 
+  // 🖥️ Giao diện
   return (
     <div className="admin-dashboard">
       <h1>🏅 Quản lý khen thưởng</h1>
@@ -136,7 +131,9 @@ const KhenThuongManager = () => {
           type="text"
           placeholder="Mã sinh viên"
           value={form.ma_sinh_vien}
-          onChange={(e) => setForm({ ...form, ma_sinh_vien: e.target.value })}
+          onChange={(e) =>
+            setForm({ ...form, ma_sinh_vien: e.target.value })
+          }
           disabled={!!editing}
         />
         <input
@@ -149,7 +146,9 @@ const KhenThuongManager = () => {
           type="date"
           placeholder="Ngày khen thưởng"
           value={form.ngay_khen_thuong}
-          onChange={(e) => setForm({ ...form, ngay_khen_thuong: e.target.value })}
+          onChange={(e) =>
+            setForm({ ...form, ngay_khen_thuong: e.target.value })
+          }
         />
         <input
           type="text"
@@ -208,20 +207,26 @@ const KhenThuongManager = () => {
                   <td colSpan="8">Không có dữ liệu</td>
                 </tr>
               ) : (
-                khenThuongList.map((item, idx) => (
-                  <tr key={idx}>
+                khenThuongList.map((item) => (
+                  <tr key={item.id_khen_thuong}>
                     <td>{item.id_khen_thuong}</td>
                     <td>{item.ma_sinh_vien}</td>
                     <td>{item.ho_ten || "—"}</td>
                     <td>{item.ten_khoa || "—"}</td>
                     <td>
-                      {new Date(item.ngay_khen_thuong).toLocaleDateString("vi-VN")}
+                      {item.ngay_khen_thuong
+                        ? new Date(item.ngay_khen_thuong).toLocaleDateString(
+                            "vi-VN"
+                          )
+                        : "—"}
                     </td>
                     <td>{item.noi_dung}</td>
                     <td>{formatCurrency(item.so_tien)}</td>
                     <td>
                       <button onClick={() => handleEdit(item)}>✏️</button>
-                      <button onClick={() => handleDelete(item.id_khen_thuong)}>
+                      <button
+                        onClick={() => handleDelete(item.id_khen_thuong)}
+                      >
                         🗑️
                       </button>
                     </td>

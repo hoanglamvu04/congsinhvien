@@ -1,8 +1,9 @@
 import express from "express";
 import { verifyToken } from "../middleware/verifyToken.js";
-import { isAdmin } from "../middleware/roleCheck.js";
+import { isAdmin, filterByDepartment } from "../middleware/roleCheck.js";
 import {
   getAllKhaoSat,
+  getKhaoSatTheoKhoa,
   createKhaoSat,
   updateKhaoSat,
   deleteKhaoSat,
@@ -10,16 +11,10 @@ import {
 
 const router = express.Router();
 
-// 📘 Lấy danh sách (Admin / Giảng viên / Sinh viên)
 router.get("/", verifyToken, getAllKhaoSat);
-
-// ➕ Tạo khảo sát (Admin / Giảng viên)
+router.get("/theo-khoa", verifyToken, filterByDepartment, getKhaoSatTheoKhoa);
 router.post("/", verifyToken, createKhaoSat);
-
-// ✏️ Cập nhật khảo sát (Admin)
-router.put("/:id_khao_sat", verifyToken, isAdmin, updateKhaoSat);
-
-// 🗑️ Xóa khảo sát (Admin)
-router.delete("/:id_khao_sat", verifyToken, isAdmin, deleteKhaoSat);
+router.put("/:id_khao_sat", verifyToken, updateKhaoSat);
+router.delete("/:id_khao_sat", verifyToken, deleteKhaoSat);
 
 export default router;

@@ -15,23 +15,20 @@ const TinNhanManager = () => {
     noi_dung: "",
     tep_dinh_kem: "",
   });
-  const token = localStorage.getItem("token");
 
-  // 🔄 Lấy danh sách tin nhắn (toàn bộ cho Admin)
+  // 📬 Lấy danh sách tin nhắn & thống kê
   const fetchTinNhan = async () => {
     try {
       setLoading(true);
-      const res = await axios.get(`${API_URL}/api/tinnhan`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const tk = await axios.get(`${API_URL}/api/tinnhan/thongke`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const [res, tk] = await Promise.all([
+        axios.get(`${API_URL}/api/tinnhan`, { withCredentials: true }),
+        axios.get(`${API_URL}/api/tinnhan/thongke`, { withCredentials: true }),
+      ]);
       setTinNhanList(res.data.data || []);
       setThongKe(tk.data || {});
     } catch (err) {
-      console.error(err);
-      alert("❌ Lỗi khi tải danh sách tin nhắn!");
+      console.error("❌ Lỗi khi tải tin nhắn:", err);
+      alert("Không thể tải danh sách tin nhắn!");
     } finally {
       setLoading(false);
     }
@@ -41,7 +38,7 @@ const TinNhanManager = () => {
     fetchTinNhan();
   }, []);
 
-  // 🔍 Lọc theo từ khóa (tên người gửi / nhận / nội dung)
+  // 🔍 Lọc theo từ khóa
   const filteredList = tinNhanList.filter(
     (item) =>
       item.nguoi_gui?.toLowerCase().includes(keyword.toLowerCase()) ||
@@ -49,21 +46,20 @@ const TinNhanManager = () => {
       item.noi_dung?.toLowerCase().includes(keyword.toLowerCase())
   );
 
-  // ➕ Gửi tin nhắn thủ công (admin)
+  // ✉️ Gửi tin nhắn thủ công (admin)
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!form.nguoi_gui || !form.nguoi_nhan || !form.noi_dung)
-      return alert("⚠️ Nhập đầy đủ người gửi, người nhận và nội dung!");
+      return alert("⚠️ Vui lòng nhập đủ người gửi, người nhận và nội dung!");
+
     try {
-      await axios.post(`${API_URL}/api/tinnhan`, form, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      await axios.post(`${API_URL}/api/tinnhan`, form, { withCredentials: true });
       alert("✅ Gửi tin nhắn thành công!");
       setForm({ nguoi_gui: "", nguoi_nhan: "", noi_dung: "", tep_dinh_kem: "" });
       fetchTinNhan();
     } catch (err) {
-      console.error(err);
-      alert("❌ Lỗi khi gửi tin nhắn!");
+      console.error("❌ Lỗi khi gửi tin nhắn:", err);
+      alert(err.response?.data?.error || "Không thể gửi tin nhắn!");
     }
   };
 
@@ -71,39 +67,37 @@ const TinNhanManager = () => {
   const handleDelete = async (id) => {
     if (!window.confirm("Bạn có chắc muốn xóa tin nhắn này không?")) return;
     try {
-      await axios.delete(`${API_URL}/api/tinnhan/${id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      alert("✅ Đã xóa tin nhắn!");
+      await axios.delete(`${API_URL}/api/tinnhan/${id}`, { withCredentials: true });
+      alert("🗑️ Đã xóa tin nhắn!");
       fetchTinNhan();
     } catch (err) {
-      console.error(err);
-      alert("❌ Lỗi khi xóa tin nhắn!");
+      console.error("❌ Lỗi khi xóa tin nhắn:", err);
+      alert("Không thể xóa tin nhắn!");
     }
   };
 
-  const formatDate = (date) => {
-    return new Date(date).toLocaleString("vi-VN", {
+  // 🕒 Format thời gian hiển thị
+  const formatDate = (date) =>
+    new Date(date).toLocaleString("vi-VN", {
       hour: "2-digit",
       minute: "2-digit",
       day: "2-digit",
       month: "2-digit",
       year: "numeric",
     });
-  };
 
   return (
     <div className="admin-dashboard">
-      <h1>💬 Quản lý tin nhắn</h1>
+      <h1>💬 Quản lý Tin nhắn</h1>
 
       {/* 🔢 Thống kê */}
       <div className="stats-bar">
-        <p>📨 Tổng tin nhắn: <b>{thongKe.tong_tin_nhan || 0}</b></p>
+        <p>📨 Tổng: <b>{thongKe.tong_tin_nhan || 0}</b></p>
         <p>📩 Chưa đọc: <b>{thongKe.chua_doc || 0}</b></p>
         <p>✅ Đã đọc: <b>{thongKe.da_doc || 0}</b></p>
       </div>
 
-      {/* 🔍 Tìm kiếm */}
+      {/* 🔍 Tìm kiếm + Làm mới */}
       <div className="filter-bar">
         <input
           type="text"
@@ -111,38 +105,44 @@ const TinNhanManager = () => {
           value={keyword}
           onChange={(e) => setKeyword(e.target.value)}
         />
+        <button onClick={fetchTinNhan}>🔄 Làm mới</button>
       </div>
 
-      {/* 🧩 Form gửi tin nhắn thủ công */}
+      {/* 🧾 Form gửi tin nhắn thủ công */}
       <form className="create-form" onSubmit={handleSubmit}>
         <h3>✉️ Gửi tin nhắn thủ công</h3>
+
         <input
           type="text"
           placeholder="Người gửi (tên đăng nhập)"
           value={form.nguoi_gui}
           onChange={(e) => setForm({ ...form, nguoi_gui: e.target.value })}
         />
+
         <input
           type="text"
           placeholder="Người nhận (tên đăng nhập)"
           value={form.nguoi_nhan}
           onChange={(e) => setForm({ ...form, nguoi_nhan: e.target.value })}
         />
+
         <textarea
           placeholder="Nội dung tin nhắn..."
           value={form.noi_dung}
           onChange={(e) => setForm({ ...form, noi_dung: e.target.value })}
         />
+
         <input
           type="text"
           placeholder="Link tệp đính kèm (nếu có)"
           value={form.tep_dinh_kem}
           onChange={(e) => setForm({ ...form, tep_dinh_kem: e.target.value })}
         />
-        <button type="submit">📨 Gửi</button>
+
+        <button type="submit">📨 Gửi tin</button>
       </form>
 
-      {/* 📋 Bảng danh sách */}
+      {/* 📋 Bảng danh sách tin nhắn */}
       <div className="table-container">
         {loading ? (
           <p>Đang tải dữ liệu...</p>
@@ -172,7 +172,7 @@ const TinNhanManager = () => {
                     <td>{idx + 1}</td>
                     <td>{item.nguoi_gui}</td>
                     <td>{item.nguoi_nhan}</td>
-                    <td>{item.noi_dung}</td>
+                    <td className="wrap-text">{item.noi_dung}</td>
                     <td>{formatDate(item.thoi_gian_gui)}</td>
                     <td>{item.da_doc ? "✅" : "📩"}</td>
                     <td>{item.trang_thai}</td>

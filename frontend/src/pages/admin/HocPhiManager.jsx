@@ -5,176 +5,163 @@ import "../../styles/admin/admin.css";
 const API_URL = process.env.REACT_APP_API_URL || "http://localhost:5000";
 
 const HocPhiManager = () => {
-  const [hocPhiList, setHocPhiList] = useState([]);
-  const [keyword, setKeyword] = useState("");
+  const [records, setRecords] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [keyword, setKeyword] = useState("");
+  const [editing, setEditing] = useState(null);
   const [form, setForm] = useState({
-    ma_sinh_vien: "",
     ma_hoc_ky: "",
     tong_tien_phai_nop: "",
-    tong_tien_da_nop: "",
-    con_no: "",
-    trang_thai: "",
+    han_nop: "",
+    ghi_chu: "",
+    trang_thai: "ap_dung",
   });
-  const [editing, setEditing] = useState(null);
-  const token = localStorage.getItem("token");
 
-  // 🔄 Lấy danh sách học phí
+  // 🔹 Lấy danh sách học phí
   const fetchHocPhi = async () => {
     try {
       setLoading(true);
       const res = await axios.get(`${API_URL}/api/hocphi`, {
-        headers: { Authorization: `Bearer ${token}` },
-        params: keyword ? { q: keyword } : {},
+        withCredentials: true,
       });
-      setHocPhiList(res.data.data || []);
+      setRecords(res.data.data || []);
     } catch (err) {
-      console.error(err);
-      alert("❌ Lỗi khi tải danh sách học phí!");
+      console.error("❌ Lỗi khi tải danh sách học phí:", err);
+      alert("Không thể tải danh sách học phí!");
     } finally {
       setLoading(false);
     }
   };
 
-  // 🧭 Load dữ liệu ban đầu và khi tìm kiếm
   useEffect(() => {
     fetchHocPhi();
   }, []);
 
-  useEffect(() => {
-    fetchHocPhi();
-  }, [keyword]);
-
-  // ➕ Thêm hoặc sửa học phí
+  // ➕ Thêm hoặc cập nhật
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const { ma_sinh_vien, ma_hoc_ky } = form;
-    if (!ma_sinh_vien || !ma_hoc_ky)
-      return alert("⚠️ Vui lòng nhập đủ Mã sinh viên và Mã học kỳ!");
+    if (!form.ma_hoc_ky || !form.tong_tien_phai_nop)
+      return alert("⚠️ Vui lòng nhập Mã học kỳ và Tổng tiền phải nộp!");
 
     try {
       if (editing) {
-        // ✏️ Cập nhật
-        await axios.put(
-          `${API_URL}/api/hocphi/${ma_sinh_vien}/${ma_hoc_ky}`,
-          form,
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
+        await axios.put(`${API_URL}/api/hocphi/${editing}`, form, {
+          withCredentials: true,
+        });
         alert("✅ Cập nhật học phí thành công!");
       } else {
-        // ➕ Thêm mới
         await axios.post(`${API_URL}/api/hocphi`, form, {
-          headers: { Authorization: `Bearer ${token}` },
+          withCredentials: true,
         });
         alert("✅ Thêm học phí thành công!");
       }
 
       setForm({
-        ma_sinh_vien: "",
         ma_hoc_ky: "",
         tong_tien_phai_nop: "",
-        tong_tien_da_nop: "",
-        con_no: "",
-        trang_thai: "",
+        han_nop: "",
+        ghi_chu: "",
+        trang_thai: "ap_dung",
       });
       setEditing(null);
       fetchHocPhi();
     } catch (err) {
-      console.error(err);
-      alert(err.response?.data?.error || "❌ Lỗi khi lưu học phí!");
+      console.error("❌ Lỗi khi lưu học phí:", err);
+      alert(err.response?.data?.error || "Không thể lưu học phí!");
     }
   };
 
-  // ✏️ Sửa
+  // ✏️ Chọn để sửa
   const handleEdit = (item) => {
-    setEditing(true);
+    setEditing(item.id_hoc_phi);
     setForm({
-      ma_sinh_vien: item.ma_sinh_vien,
       ma_hoc_ky: item.ma_hoc_ky,
-      tong_tien_phai_nop: item.tong_tien_phai_nop || "",
-      tong_tien_da_nop: item.tong_tien_da_nop || "",
-      con_no: item.con_no || "",
-      trang_thai: item.trang_thai || "",
+      tong_tien_phai_nop: item.tong_tien_phai_nop,
+      han_nop: item.han_nop ? item.han_nop.split("T")[0] : "",
+      ghi_chu: item.ghi_chu || "",
+      trang_thai: item.trang_thai || "ap_dung",
     });
   };
 
-  // 🗑️ Xóa
-  const handleDelete = async (item) => {
-    if (!window.confirm("Bạn có chắc muốn xóa học phí của sinh viên này không?")) return;
+  // 🗑️ Xóa học phí
+  const handleDelete = async (id_hoc_phi) => {
+    if (!window.confirm("Bạn có chắc muốn xóa bản ghi này?")) return;
     try {
-      await axios.delete(`${API_URL}/api/hocphi/${item.ma_sinh_vien}/${item.ma_hoc_ky}`, {
-        headers: { Authorization: `Bearer ${token}` },
+      await axios.delete(`${API_URL}/api/hocphi/${id_hoc_phi}`, {
+        withCredentials: true,
       });
-      alert("✅ Đã xóa bản ghi học phí!");
+      alert("🗑️ Xóa học phí thành công!");
       fetchHocPhi();
     } catch (err) {
-      console.error(err);
-      alert("❌ Lỗi khi xóa học phí!");
+      console.error("❌ Lỗi khi xóa:", err);
+      alert(err.response?.data?.error || "Không thể xóa học phí!");
     }
   };
 
-  // 💰 Format tiền VND
-  const formatCurrency = (num) => {
-    if (!num) return "0";
-    return Number(num).toLocaleString("vi-VN");
-  };
+  // 🔍 Lọc tìm kiếm
+  const filtered = records.filter((r) =>
+    [r.ma_hoc_ky, r.ten_hoc_ky, r.ghi_chu]
+      .some((f) => f?.toLowerCase().includes(keyword.toLowerCase()))
+  );
 
+  // 🖥️ Giao diện
   return (
     <div className="admin-dashboard">
       <h1>💰 Quản lý học phí</h1>
 
-      {/* 🔍 Thanh tìm kiếm */}
+      {/* Bộ lọc */}
       <div className="filter-bar">
         <input
           type="text"
-          placeholder="Nhập mã sinh viên, học kỳ hoặc trạng thái..."
+          placeholder="Tìm kiếm học kỳ, ghi chú..."
           value={keyword}
           onChange={(e) => setKeyword(e.target.value)}
         />
       </div>
 
-      {/* 🧩 Form thêm/sửa */}
+      {/* Form thêm / sửa */}
       <form className="create-form" onSubmit={handleSubmit}>
-        <h3>{editing ? "✏️ Sửa học phí" : "➕ Thêm học phí"}</h3>
+        <h3>{editing ? "✏️ Sửa học phí học kỳ" : "➕ Thêm học phí mới"}</h3>
+
+        {!editing && (
+          <input
+            type="text"
+            placeholder="Mã học kỳ (VD: HK2025A)"
+            value={form.ma_hoc_ky}
+            onChange={(e) => setForm({ ...form, ma_hoc_ky: e.target.value })}
+          />
+        )}
+
+        <input
+          type="number"
+          placeholder="Tổng tiền phải nộp (VNĐ)"
+          value={form.tong_tien_phai_nop}
+          onChange={(e) =>
+            setForm({ ...form, tong_tien_phai_nop: e.target.value })
+          }
+        />
+
+        <input
+          type="date"
+          placeholder="Hạn nộp"
+          value={form.han_nop}
+          onChange={(e) => setForm({ ...form, han_nop: e.target.value })}
+        />
 
         <input
           type="text"
-          placeholder="Mã sinh viên"
-          value={form.ma_sinh_vien}
-          onChange={(e) => setForm({ ...form, ma_sinh_vien: e.target.value })}
-          disabled={editing}
+          placeholder="Ghi chú"
+          value={form.ghi_chu}
+          onChange={(e) => setForm({ ...form, ghi_chu: e.target.value })}
         />
-        <input
-          type="text"
-          placeholder="Mã học kỳ"
-          value={form.ma_hoc_ky}
-          onChange={(e) => setForm({ ...form, ma_hoc_ky: e.target.value })}
-          disabled={editing}
-        />
-        <input
-          type="number"
-          placeholder="Tổng tiền phải nộp"
-          value={form.tong_tien_phai_nop}
-          onChange={(e) => setForm({ ...form, tong_tien_phai_nop: e.target.value })}
-        />
-        <input
-          type="number"
-          placeholder="Tổng tiền đã nộp"
-          value={form.tong_tien_da_nop}
-          onChange={(e) => setForm({ ...form, tong_tien_da_nop: e.target.value })}
-        />
-        <input
-          type="number"
-          placeholder="Còn nợ"
-          value={form.con_no}
-          onChange={(e) => setForm({ ...form, con_no: e.target.value })}
-        />
-        <input
-          type="text"
-          placeholder="Trạng thái (ví dụ: chuanop / danop)"
+
+        <select
           value={form.trang_thai}
           onChange={(e) => setForm({ ...form, trang_thai: e.target.value })}
-        />
+        >
+          <option value="ap_dung">Áp dụng</option>
+          <option value="ngung">Ngưng áp dụng</option>
+        </select>
 
         <button type="submit">{editing ? "💾 Lưu" : "Thêm"}</button>
         {editing && (
@@ -183,12 +170,11 @@ const HocPhiManager = () => {
             onClick={() => {
               setEditing(null);
               setForm({
-                ma_sinh_vien: "",
                 ma_hoc_ky: "",
                 tong_tien_phai_nop: "",
-                tong_tien_da_nop: "",
-                con_no: "",
-                trang_thai: "",
+                han_nop: "",
+                ghi_chu: "",
+                trang_thai: "ap_dung",
               });
             }}
           >
@@ -197,7 +183,7 @@ const HocPhiManager = () => {
         )}
       </form>
 
-      {/* 📋 Bảng danh sách */}
+      {/* Bảng danh sách */}
       <div className="table-container">
         {loading ? (
           <p>Đang tải...</p>
@@ -205,32 +191,46 @@ const HocPhiManager = () => {
           <table className="data-table">
             <thead>
               <tr>
-                <th>Mã SV</th>
-                <th>Học kỳ</th>
-                <th>Tổng phải nộp</th>
-                <th>Đã nộp</th>
-                <th>Còn nợ</th>
+                <th>Mã học kỳ</th>
+                <th>Tổng tiền (VNĐ)</th>
+                <th>Hạn nộp</th>
                 <th>Trạng thái</th>
+                <th>Ghi chú</th>
                 <th>Thao tác</th>
               </tr>
             </thead>
             <tbody>
-              {hocPhiList.length === 0 ? (
+              {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan="7">Không có dữ liệu</td>
+                  <td colSpan="6">Không có dữ liệu</td>
                 </tr>
               ) : (
-                hocPhiList.map((item, idx) => (
-                  <tr key={idx}>
-                    <td>{item.ma_sinh_vien}</td>
-                    <td>{item.ten_hoc_ky}</td>
-                    <td>{formatCurrency(item.tong_tien_phai_nop)}</td>
-                    <td>{formatCurrency(item.tong_tien_da_nop)}</td>
-                    <td>{formatCurrency(item.con_no)}</td>
-                    <td>{item.trang_thai}</td>
+                filtered.map((item) => (
+                  <tr key={item.id_hoc_phi}>
+                    <td>{item.ma_hoc_ky}</td>
+                    <td>{Number(item.tong_tien_phai_nop).toLocaleString()} ₫</td>
+                    <td>
+                      {item.han_nop
+                        ? new Date(item.han_nop).toLocaleDateString("vi-VN")
+                        : "—"}
+                    </td>
+                    <td
+                      className={
+                        item.trang_thai === "ap_dung"
+                          ? "status green"
+                          : "status red"
+                      }
+                    >
+                      {item.trang_thai === "ap_dung"
+                        ? "Áp dụng"
+                        : "Ngưng áp dụng"}
+                    </td>
+                    <td>{item.ghi_chu || "—"}</td>
                     <td>
                       <button onClick={() => handleEdit(item)}>✏️</button>
-                      <button onClick={() => handleDelete(item)}>🗑️</button>
+                      <button onClick={() => handleDelete(item.id_hoc_phi)}>
+                        🗑️
+                      </button>
                     </td>
                   </tr>
                 ))

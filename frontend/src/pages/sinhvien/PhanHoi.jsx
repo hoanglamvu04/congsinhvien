@@ -14,61 +14,56 @@ import "../../styles/PhanHoi.css";
 const API_URL = process.env.REACT_APP_API_URL || "http://localhost:5000";
 
 const PhanHoi = () => {
-  const token = localStorage.getItem("token");
   const [phanHoiList, setPhanHoiList] = useState([]);
-  const [form, setForm] = useState({
-    nguoi_nhan: "",
-    chu_de: "",
-    noi_dung: "",
-  });
+  const [form, setForm] = useState({ nguoi_nhan: "", chu_de: "", noi_dung: "" });
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
 
-  // 🔄 Lấy danh sách phản hồi
+  // 📘 Lấy danh sách phản hồi
+  const fetchPhanHoi = async () => {
+    try {
+      const res = await axios.get(`${API_URL}/api/phanhoi/sinhvien`, {
+        withCredentials: true,
+      });
+      setPhanHoiList(res.data || []);
+    } catch (err) {
+      console.error("❌ Lỗi khi tải phản hồi:", err);
+      toast.error("Không thể tải danh sách phản hồi!");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchPhanHoi = async () => {
-      try {
-        const res = await axios.get(`${API_URL}/api/phanhoi/sinhvien`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        setPhanHoiList(res.data || []);
-      } catch (err) {
-        console.error("❌ Lỗi khi tải phản hồi:", err);
-        toast.error("Không thể tải danh sách phản hồi!");
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchPhanHoi();
-  }, [token]);
+  }, []);
 
   // 📤 Gửi phản hồi
   const guiPhanHoi = async () => {
-    if (!form.nguoi_nhan || !form.chu_de || !form.noi_dung) {
-      toast.warning("Vui lòng nhập đầy đủ thông tin!");
+    const { nguoi_nhan, chu_de, noi_dung } = form;
+    if (!nguoi_nhan || !chu_de || !noi_dung.trim()) {
+      toast.warning("⚠️ Vui lòng nhập đầy đủ thông tin!");
       return;
     }
 
-    const confirmSend = window.confirm("Xác nhận gửi phản hồi này?");
-    if (!confirmSend) return;
-
     try {
-      await axios.post(`${API_URL}/api/phanhoi`, form, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      await axios.post(`${API_URL}/api/phanhoi`, form, { withCredentials: true });
       toast.success("✅ Gửi phản hồi thành công!");
       setForm({ nguoi_nhan: "", chu_de: "", noi_dung: "" });
       setShowModal(false);
-
-      const res = await axios.get(`${API_URL}/api/phanhoi/sinhvien`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setPhanHoiList(res.data || []);
+      fetchPhanHoi();
     } catch (err) {
       console.error("❌ Lỗi khi gửi phản hồi:", err);
       toast.error("Không thể gửi phản hồi!");
     }
   };
+
+  // ⛔ Đóng modal khi click outside hoặc nhấn ESC
+  useEffect(() => {
+    const handleKey = (e) => e.key === "Escape" && setShowModal(false);
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, []);
 
   return (
     <div className="page-container">
@@ -88,7 +83,10 @@ const PhanHoi = () => {
 
       {/* Modal thêm phản hồi */}
       {showModal && (
-        <div className="modal-overlay">
+        <div
+          className="modal-overlay"
+          onClick={(e) => e.target.classList.contains("modal-overlay") && setShowModal(false)}
+        >
           <div className="modal-content">
             <h3>
               <FaClipboardList style={{ marginRight: 6, color: "#003366" }} />
@@ -97,11 +95,9 @@ const PhanHoi = () => {
 
             <input
               type="text"
-              placeholder="Người nhận (ví dụ: admin, phòng đào tạo...)"
+              placeholder="Người nhận (VD: admin, phòng đào tạo...)"
               value={form.nguoi_nhan}
-              onChange={(e) =>
-                setForm({ ...form, nguoi_nhan: e.target.value })
-              }
+              onChange={(e) => setForm({ ...form, nguoi_nhan: e.target.value })}
             />
             <input
               type="text"
@@ -118,12 +114,10 @@ const PhanHoi = () => {
 
             <div className="modal-actions">
               <button className="btn-cancel" onClick={() => setShowModal(false)}>
-                <FaTimes style={{ marginRight: 4 }} />
-                Hủy
+                <FaTimes style={{ marginRight: 4 }} /> Hủy
               </button>
               <button className="btn-send" onClick={guiPhanHoi}>
-                <FaPaperPlane style={{ marginRight: 4 }} />
-                Gửi
+                <FaPaperPlane style={{ marginRight: 4 }} /> Gửi
               </button>
             </div>
           </div>
@@ -137,50 +131,52 @@ const PhanHoi = () => {
       </h4>
 
       {loading ? (
-        <p>⏳ Đang tải dữ liệu...</p>
+        <p className="loading">⏳ Đang tải dữ liệu...</p>
       ) : phanHoiList.length === 0 ? (
-        <p>⚠️ Chưa có phản hồi nào.</p>
+        <p className="no-data">📭 Chưa có phản hồi nào.</p>
       ) : (
-        <table className="data-table">
-          <thead>
-            <tr>
-              <th>#</th>
-              <th>Người nhận</th>
-              <th>Chủ đề</th>
-              <th>Nội dung</th>
-              <th>Trạng thái</th>
-              <th>Phản hồi từ người nhận</th>
-              <th>Ngày gửi</th>
-            </tr>
-          </thead>
-          <tbody>
-            {phanHoiList.map((item, i) => (
-              <tr key={item.id_phan_hoi}>
-                <td>{i + 1}</td>
-                <td>{item.nguoi_nhan}</td>
-                <td>{item.chu_de}</td>
-                <td>{item.noi_dung}</td>
-                <td>
-                  {item.trang_thai === "choduyet" ? (
-                    <span style={{ color: "#ff9800" }}>⏳ Chờ duyệt</span>
-                  ) : (
-                    <span style={{ color: "green" }}>✅ Đã giải quyết</span>
-                  )}
-                </td>
-                <td>{item.phan_hoi_tu_nguoi_nhan || "—"}</td>
-                <td>
-                  {new Date(item.ngay_gui).toLocaleString("vi-VN", {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                    day: "2-digit",
-                    month: "2-digit",
-                    year: "numeric",
-                  })}
-                </td>
+        <div className="table-wrapper">
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Người nhận</th>
+                <th>Chủ đề</th>
+                <th>Nội dung</th>
+                <th>Trạng thái</th>
+                <th>Phản hồi từ người nhận</th>
+                <th>Ngày gửi</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {phanHoiList.map((item, i) => (
+                <tr key={item.id_phan_hoi}>
+                  <td>{i + 1}</td>
+                  <td>{item.nguoi_nhan}</td>
+                  <td>{item.chu_de}</td>
+                  <td>{item.noi_dung}</td>
+                  <td>
+                    {item.trang_thai === "choduyet" ? (
+                      <span className="status yellow">⏳ Chờ duyệt</span>
+                    ) : (
+                      <span className="status green">✅ Đã giải quyết</span>
+                    )}
+                  </td>
+                  <td>{item.phan_hoi_tu_nguoi_nhan || "—"}</td>
+                  <td>
+                    {new Date(item.ngay_gui).toLocaleString("vi-VN", {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                      day: "2-digit",
+                      month: "2-digit",
+                      year: "numeric",
+                    })}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
     </div>
   );

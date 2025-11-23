@@ -1,107 +1,107 @@
 import pool from "../config/db.js";
 
 /**
- * 📘 Lấy danh sách giao dịch
- * - Admin: xem tất cả, có thể tìm kiếm theo mã SV / học kỳ / trạng thái / phương thức
- * - Sinh viên: chỉ xem giao dịch của mình
+ * 📘 Lấy danh sách giao dịch nộp học phí
+ * - Admin xem toàn bộ
+ * - Sinh viên chỉ xem các giao dịch của mình
  */
-export const getAllGiaoDich = async (req, res) => {
+export const getAllGiaoDichHocPhi = async (req, res) => {
   try {
     const user = req.user;
     const isAdmin = user.role === "admin";
-    const { q = "" } = req.query;
-    const keyword = `%${q}%`;
 
     let sql = `
-      SELECT gd.*, hp.ma_hoc_ky, hp.ma_sinh_vien, hk.ten_hoc_ky
-      FROM giao_dich gd
+      SELECT 
+        gd.id_gd,
+        gd.ma_sinh_vien,
+        sv.ho_ten,
+        hk.ten_hoc_ky,
+        hp.tong_tien_phai_nop,
+        gd.so_tien_nop,
+        gd.ngay_nop,
+        gd.phuong_thuc,
+        gd.trang_thai,
+        gd.ghi_chu
+      FROM giao_dich_hoc_phi gd
+      JOIN sinh_vien sv ON gd.ma_sinh_vien = sv.ma_sinh_vien
       JOIN hoc_phi hp ON gd.id_hoc_phi = hp.id_hoc_phi
       JOIN hoc_ky hk ON hp.ma_hoc_ky = hk.ma_hoc_ky
     `;
-    const params = [];
 
-    if (isAdmin) {
-      sql += `
-        WHERE hp.ma_sinh_vien LIKE ?
-           OR hk.ten_hoc_ky LIKE ?
-           OR gd.phuong_thuc LIKE ?
-           OR gd.trang_thai LIKE ?
-      `;
-      params.push(keyword, keyword, keyword, keyword);
-    } else {
-      sql += " WHERE hp.ma_sinh_vien = ?";
+    const params = [];
+    if (!isAdmin) {
+      sql += " WHERE gd.ma_sinh_vien = ?";
       params.push(user.ma_sinh_vien);
     }
 
-    sql += " ORDER BY gd.ngay_giao_dich DESC";
+    sql += " ORDER BY gd.ngay_nop DESC";
 
     const [rows] = await pool.query(sql, params);
     res.json({ data: rows });
   } catch (error) {
-    console.error("[getAllGiaoDich]", error);
-    res.status(500).json({ error: "Lỗi khi lấy danh sách giao dịch" });
+    console.error("[getAllGiaoDichHocPhi]", error);
+    res.status(500).json({ error: "Lỗi khi lấy danh sách giao dịch học phí" });
   }
 };
 
 /**
- * ➕ Tạo giao dịch mới (Sinh viên nộp học phí)
+ * ➕ Thêm giao dịch nộp học phí
+ * Ghi nhận mỗi lần sinh viên nộp tiền
  */
-export const createGiaoDich = async (req, res) => {
+export const createGiaoDichHocPhi = async (req, res) => {
   try {
-    const { id_hoc_phi, so_tien, phuong_thuc } = req.body;
+    const {
+      ma_sinh_vien,
+      id_hoc_phi,
+      so_tien_nop,
+      phuong_thuc = "tien_mat",
+      trang_thai = "thanh_cong",
+      ghi_chu = null,
+    } = req.body;
 
-    if (!id_hoc_phi || !so_tien || !phuong_thuc)
+    if (!ma_sinh_vien || !id_hoc_phi || !so_tien_nop)
       return res.status(400).json({ error: "Thiếu thông tin bắt buộc" });
 
+    // Kiểm tra sinh viên tồn tại
+    const [sv] = await pool.query(
+      "SELECT 1 FROM sinh_vien WHERE ma_sinh_vien = ?",
+      [ma_sinh_vien]
+    );
+    if (!sv.length)
+      return res.status(404).json({ error: "Không tìm thấy sinh viên" });
+
+    // Kiểm tra học phí tồn tại
+    const [hp] = await pool.query(
+      "SELECT 1 FROM hoc_phi WHERE id_hoc_phi = ?",
+      [id_hoc_phi]
+    );
+    if (!hp.length)
+      return res.status(404).json({ error: "Không tìm thấy học phí học kỳ" });
+
     await pool.query(
-      `
-      INSERT INTO giao_dich (id_hoc_phi, ngay_giao_dich, so_tien, phuong_thuc, trang_thai)
-      VALUES (?, NOW(), ?, ?, 'cho_duyet')
-      `,
-      [id_hoc_phi, so_tien, phuong_thuc]
+      `INSERT INTO giao_dich_hoc_phi
+       (ma_sinh_vien, id_hoc_phi, so_tien_nop, ngay_nop, phuong_thuc, trang_thai, ghi_chu)
+       VALUES (?, ?, ?, CURDATE(), ?, ?, ?)`,
+      [ma_sinh_vien, id_hoc_phi, so_tien_nop, phuong_thuc, trang_thai, ghi_chu]
     );
 
-    res.status(201).json({ message: "Tạo giao dịch thành công, đang chờ duyệt" });
+    res.status(201).json({ message: "✅ Ghi nhận giao dịch học phí thành công" });
   } catch (error) {
-    console.error("[createGiaoDich]", error);
-    res.status(500).json({ error: "Lỗi khi tạo giao dịch" });
+    console.error("[createGiaoDichHocPhi]", error);
+    res.status(500).json({ error: "Lỗi khi ghi nhận giao dịch học phí" });
   }
 };
 
 /**
- * ✏️ Duyệt / Cập nhật trạng thái giao dịch (Admin)
+ * 🗑️ Xóa giao dịch học phí
  */
-export const updateTrangThaiGiaoDich = async (req, res) => {
+export const deleteGiaoDichHocPhi = async (req, res) => {
   try {
-    const { id_giao_dich, trang_thai } = req.body;
-    if (!id_giao_dich || !trang_thai)
-      return res.status(400).json({ error: "Thiếu thông tin cập nhật" });
-
-    const [exist] = await pool.query("SELECT * FROM giao_dich WHERE id_giao_dich = ?", [id_giao_dich]);
-    if (!exist.length) return res.status(404).json({ error: "Không tìm thấy giao dịch" });
-
-    await pool.query("UPDATE giao_dich SET trang_thai = ? WHERE id_giao_dich = ?", [
-      trang_thai,
-      id_giao_dich,
-    ]);
-
-    res.json({ message: "Cập nhật trạng thái giao dịch thành công" });
+    const { id_gd } = req.params;
+    await pool.query("DELETE FROM giao_dich_hoc_phi WHERE id_gd = ?", [id_gd]);
+    res.json({ message: "🗑️ Đã xóa giao dịch học phí thành công" });
   } catch (error) {
-    console.error("[updateTrangThaiGiaoDich]", error);
-    res.status(500).json({ error: "Lỗi khi cập nhật giao dịch" });
-  }
-};
-
-/**
- * 🗑️ Xóa giao dịch (Admin)
- */
-export const deleteGiaoDich = async (req, res) => {
-  try {
-    const { id_giao_dich } = req.params;
-    await pool.query("DELETE FROM giao_dich WHERE id_giao_dich=?", [id_giao_dich]);
-    res.json({ message: "Xóa giao dịch thành công" });
-  } catch (error) {
-    console.error("[deleteGiaoDich]", error);
-    res.status(500).json({ error: "Lỗi khi xóa giao dịch" });
+    console.error("[deleteGiaoDichHocPhi]", error);
+    res.status(500).json({ error: "Lỗi khi xóa giao dịch học phí" });
   }
 };

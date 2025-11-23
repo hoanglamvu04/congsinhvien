@@ -81,3 +81,16 @@ export const deleteNganh = async (req, res) => {
     res.status(500).json({ error: "Lỗi khi xóa ngành" });
   }
 };
+export const getNganhTheoKhoa = async (req, res) => {
+  try {
+    const { ma_khoa } = req.params;
+    const [rows] = await pool.query(
+      "SELECT ma_nganh, ten_nganh FROM nganh WHERE ma_khoa = ?",
+      [ma_khoa]
+    );
+    res.json({ data: rows });
+  } catch (error) {
+    console.error("❌ Lỗi khi lấy ngành theo khoa:", error);
+    res.status(500).json({ error: "Không thể lấy danh sách ngành" });
+  }
+};

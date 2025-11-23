@@ -9,60 +9,66 @@ import {
 } from "react-icons/fa";
 import {
   format,
-  startOfWeek,
   endOfWeek,
-  addWeeks,
-  subWeeks,
   eachWeekOfInterval,
 } from "date-fns";
-import { vi } from "date-fns/locale";
 import { ToastContainer, toast } from "react-toastify";
+import { useSearchParams } from "react-router-dom";
 import "react-toastify/dist/ReactToastify.css";
 import * as XLSX from "xlsx";
-import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
 import pdfMake from "../../utils/pdfFonts";
-
 import "../../styles/LichHoc.css";
 
 const API_URL = process.env.REACT_APP_API_URL || "http://localhost:5000";
 
-const tietToCa = (tietBatDau) => {
-  if (tietBatDau <= 5) return "Sáng";
-  if (tietBatDau <= 10) return "Chiều";
+const tietToCa = (tiet) => {
+  if (tiet <= 5) return "Sáng";
+  if (tiet <= 10) return "Chiều";
   return "Tối";
 };
 
 const LichHoc = () => {
-  const [tab, setTab] = useState("tuan"); // "hocKy" | "tuan"
+  // -------------------- URL + localStorage ---------------------
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  const loadLS = (key, def) =>
+    localStorage.getItem(key) ? JSON.parse(localStorage.getItem(key)) : def;
+
+  // state UI
+  const [tab, setTab] = useState(searchParams.get("tab") || loadLS("tab", "tuan"));
+  const [hocKy, setHocKy] = useState(searchParams.get("hocky") || loadLS("hocky", "tatca"));
+  const [mon, setMon] = useState(searchParams.get("mon") || loadLS("mon", "tatca"));
+  const [weekLabel, setWeekLabel] = useState(searchParams.get("tuan") || loadLS("tuan", null));
+
+  // data
   const [lichHoc, setLichHoc] = useState([]);
   const [hocKyList, setHocKyList] = useState([]);
-  const [hocKy, setHocKy] = useState("tatca");
   const [monList, setMonList] = useState([]);
-  const [mon, setMon] = useState("tatca");
   const [weekList, setWeekList] = useState([]);
   const [tuan, setTuan] = useState(null);
-  const token = localStorage.getItem("token");
 
-  // 📘 Lấy dữ liệu lịch học
+  // ---------------------- FETCH DATA ----------------------------
   useEffect(() => {
     const fetchData = async () => {
       try {
         const res = await axios.get(`${API_URL}/api/thoi-khoa-bieu/sinhvien`, {
-          headers: { Authorization: `Bearer ${token}` },
+          withCredentials: true,
         });
+
         const data = res.data.data || [];
         setLichHoc(data);
 
         const ky = [...new Set(data.map((d) => d.hoc_ky).filter(Boolean))];
-        const mon = [...new Set(data.map((d) => d.ten_mon).filter(Boolean))];
+        const monhoc = [...new Set(data.map((d) => d.ten_mon).filter(Boolean))];
         setHocKyList(ky);
-        setMonList(mon);
+        setMonList(monhoc);
 
         if (data.length > 0) {
           const minDate = new Date(Math.min(...data.map((i) => new Date(i.ngay_hoc))));
           const maxDate = new Date(Math.max(...data.map((i) => new Date(i.ngay_hoc))));
+
           const weeks = eachWeekOfInterval({ start: minDate, end: maxDate }, { weekStartsOn: 1 });
+
           const list = weeks.map((start, idx) => {
             const end = endOfWeek(start, { weekStartsOn: 1 });
             return {
@@ -71,50 +77,81 @@ const LichHoc = () => {
               end,
             };
           });
+
           setWeekList(list);
-          setTuan(list[0]);
+
+          let currentWeek = null;
+          if (weekLabel) {
+            currentWeek = list.find((w) => w.label === weekLabel);
+          }
+          if (!currentWeek) {
+            const today = new Date();
+            currentWeek = list.find((w) => today >= w.start && today <= w.end) || list[0];
+          }
+          setTuan(currentWeek);
         }
       } catch (err) {
-        console.error(err);
-        toast.error("❌ Không thể tải thời khóa biểu!");
+        toast.error("Không thể tải thời khóa biểu!");
       }
     };
-    fetchData();
-  }, [token]);
 
-  // 🧮 Lọc dữ liệu theo học kỳ và môn
+    fetchData();
+  }, []);
+
+  // ---------------------- SYNC → URL + LS ------------------------
+  useEffect(() => {
+    const params = {};
+    params.tab = tab;
+    params.hocky = hocKy;
+    params.mon = mon;
+    if (tab === "tuan" && tuan) params.tuan = tuan.label;
+    setSearchParams(params);
+
+    localStorage.setItem("tab", JSON.stringify(tab));
+    localStorage.setItem("hocky", JSON.stringify(hocKy));
+    localStorage.setItem("mon", JSON.stringify(mon));
+    localStorage.setItem("tuan", JSON.stringify(tuan?.label || null));
+  }, [tab, hocKy, mon, tuan]);
+
+  // ----------------------- FILTER DATA ---------------------------
   const filtered = useMemo(() => {
     let data = lichHoc;
-    if (hocKy !== "tatca") data = data.filter((i) => i.hoc_ky === hocKy);
+
+    if (hocKy !== "tatca") data = data.filter((i) => i.hoc_ky == hocKy);
     if (mon !== "tatca") data = data.filter((i) => i.ten_mon === mon);
+
     if (tab === "tuan" && tuan) {
       data = data.filter((i) => {
         const d = new Date(i.ngay_hoc);
         return d >= tuan.start && d <= tuan.end;
       });
     }
+
     return data;
   }, [lichHoc, hocKy, mon, tuan, tab]);
 
-  // 🧭 Điều hướng tuần
+  // --------------------- NAVIGATE WEEKS -------------------------
   const prevWeek = () => {
-    const idx = weekList.findIndex((w) => w.start.getTime() === tuan.start.getTime());
+    const idx = weekList.findIndex((w) => w.label === tuan.label);
     if (idx > 0) setTuan(weekList[idx - 1]);
   };
+
   const nextWeek = () => {
-    const idx = weekList.findIndex((w) => w.start.getTime() === tuan.start.getTime());
+    const idx = weekList.findIndex((w) => w.label === tuan.label);
     if (idx < weekList.length - 1) setTuan(weekList[idx + 1]);
   };
 
-  // 🧾 Xuất Excel / PDF
+  // --------------------- EXPORT EXCEL ---------------------------
   const exportExcel = () => {
+    if (!filtered.length) return toast.warning("Không có dữ liệu!");
+
     const ws = XLSX.utils.json_to_sheet(
       filtered.map((i) => ({
         "Ngày học": format(new Date(i.ngay_hoc), "dd/MM/yyyy"),
         "Thứ": i.thu_trong_tuan,
         "Ca": tietToCa(i.tiet_bat_dau),
-        "Môn học": i.ten_mon,
-        "Giảng viên": i.ten_giang_vien,
+        "Môn": i.ten_mon,
+        "GV": i.ten_giang_vien,
         "Phòng": i.phong_hoc,
         "Lớp HP": i.ma_lop_hp,
         "Trạng thái": i.trang_thai,
@@ -122,21 +159,17 @@ const LichHoc = () => {
     );
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "LichHoc");
-    XLSX.writeFile(wb, "lich_hoc.xlsx");
+    XLSX.writeFile(wb, `lich_hoc.xlsx`);
+
+    toast.success("Xuất Excel thành công!");
   };
-const exportPDF = () => {
-  try {
+
+  // --------------------- EXPORT PDF -----------------------------
+  const exportPDF = () => {
+    if (!filtered.length) return toast.warning("Không có dữ liệu!");
+
     const tableBody = [
-      [
-        { text: "Ngày", bold: true },
-        { text: "Thứ", bold: true },
-        { text: "Ca", bold: true },
-        { text: "Môn học", bold: true },
-        { text: "Giảng viên", bold: true },
-        { text: "Phòng", bold: true },
-        { text: "Lớp HP", bold: true },
-        { text: "Trạng thái", bold: true },
-      ],
+      ["Ngày", "Thứ", "Ca", "Môn", "Giảng viên", "Phòng", "Lớp HP", "Trạng thái"],
       ...filtered.map((i) => [
         format(new Date(i.ngay_hoc), "dd/MM/yyyy"),
         i.thu_trong_tuan,
@@ -153,34 +186,21 @@ const exportPDF = () => {
       content: [
         { text: "LỊCH HỌC SINH VIÊN", style: "header" },
         {
-          table: {
-            headerRows: 1,
-            widths: ["auto", "auto", "auto", "*", "*", "auto", "auto", "auto"],
-            body: tableBody,
-          },
+          table: { headerRows: 1, widths: ["auto", "auto", "auto", "*", "*", "auto", "auto", "auto"], body: tableBody },
           layout: "lightHorizontalLines",
         },
       ],
       styles: {
-        header: {
-          fontSize: 16,
-          bold: true,
-          alignment: "center",
-          margin: [0, 0, 0, 10],
-        },
+        header: { fontSize: 16, bold: true, alignment: "center", margin: [0, 0, 0, 10] },
       },
-      defaultStyle: {
-        font: "Roboto", // font mặc định pdfmake có sẵn
-        fontSize: 11,
-      },
+      defaultStyle: { font: "Roboto", fontSize: 11 },
     };
 
     pdfMake.createPdf(docDefinition).download("lich_hoc.pdf");
-  } catch (err) {
-    console.error("❌ Xuất PDF lỗi:", err);
-    toast.error("Không thể xuất PDF!");
-  }
-};
+    toast.success("Xuất PDF thành công!");
+  };
+
+  // --------------------------------------------------------------
   return (
     <div className="page-container">
       <ToastContainer position="top-center" autoClose={2000} />
@@ -189,113 +209,88 @@ const exportPDF = () => {
         Lịch học sinh viên
       </h2>
 
-      {/* Tab chuyển đổi */}
+      {/* TAB */}
       <div className="tab-switch">
-        <button
-          className={tab === "hocKy" ? "active" : ""}
-          onClick={() => setTab("hocKy")}
-        >
+        <button className={tab === "hocKy" ? "active" : ""} onClick={() => setTab("hocKy")}>
           LỊCH HỌC DỰ KIẾN THEO HỌC KỲ
         </button>
         <button className={tab === "tuan" ? "active" : ""} onClick={() => setTab("tuan")}>
-          LỊCH HỌC ĐÃ DUYỆT THEO TUẦN
+          LỊCH HỌC THEO TUẦN
         </button>
       </div>
 
-      {/* Bộ lọc */}
+      {/* FILTER */}
       <div className="filter-bar">
         <select value={hocKy} onChange={(e) => setHocKy(e.target.value)}>
           <option value="tatca">Tất cả học kỳ</option>
           {hocKyList.map((k, i) => (
-            <option key={i} value={k}>
-              Học kỳ {k}
-            </option>
+            <option key={i} value={k}>Học kỳ {k}</option>
           ))}
         </select>
+
         <select value={mon} onChange={(e) => setMon(e.target.value)}>
           <option value="tatca">Tất cả môn học</option>
           {monList.map((m, i) => (
-            <option key={i} value={m}>
-              {m}
-            </option>
+            <option key={i} value={m}>{m}</option>
           ))}
         </select>
+
         {tab === "tuan" && (
           <select
-            value={tuan ? tuan.label : ""}
+            value={tuan?.label || ""}
             onChange={(e) => {
               const week = weekList.find((w) => w.label === e.target.value);
               if (week) setTuan(week);
             }}
           >
             {weekList.map((w, idx) => (
-              <option key={idx} value={w.label}>
-                {w.label}
-              </option>
+              <option key={idx} value={w.label}>{w.label}</option>
             ))}
           </select>
         )}
+
         <button onClick={exportExcel}>
-          <FaFileExcel style={{ color: "green", marginRight: 5 }} />
-          Excel
+          <FaFileExcel style={{ color: "green", marginRight: 5 }} /> Excel
         </button>
         <button onClick={exportPDF}>
-          <FaFilePdf style={{ color: "red", marginRight: 5 }} />
-          PDF
+          <FaFilePdf style={{ color: "red", marginRight: 5 }} /> PDF
         </button>
       </div>
 
-      {/* --- LỊCH HỌC THEO TUẦN (ma trận 3 ca) --- */}
+      {/* HIỂN THỊ */}
       {tab === "tuan" ? (
         <div className="hocKy-container">
           <div className="week-nav">
-            <button onClick={prevWeek}>
-              <FaChevronLeft /> Tuần trước
-            </button>
+            <button onClick={prevWeek}><FaChevronLeft /> Tuần trước</button>
             <span className="week-label">{tuan?.label}</span>
-            <button onClick={nextWeek}>
-              Tuần sau <FaChevronRight />
-            </button>
+            <button onClick={nextWeek}>Tuần sau <FaChevronRight /></button>
           </div>
 
           <table className="hocKy-matrix">
             <thead>
               <tr>
                 <th></th>
-                <th>Thứ 2</th>
-                <th>Thứ 3</th>
-                <th>Thứ 4</th>
-                <th>Thứ 5</th>
-                <th>Thứ 6</th>
-                <th>Thứ 7</th>
-                <th>CN</th>
+                {["T2", "T3", "T4", "T5", "T6", "T7", "CN"].map((d, i) => <th key={i}>{d}</th>)}
               </tr>
             </thead>
             <tbody>
-              {["Sáng", "Chiều", "Tối"].map((ca, idx) => (
-                <tr key={idx}>
+              {["Sáng", "Chiều", "Tối"].map((ca) => (
+                <tr key={ca}>
                   <td className={`ca-label ca-${ca.toLowerCase()}`}>{ca}</td>
-                  {[2, 3, 4, 5, 6, 7, 8].map((thu, tIndex) => {
+                  {[2, 3, 4, 5, 6, 7, 8].map((thu) => {
                     const buoi = filtered.filter(
-                      (i) =>
-                        i.thu_trong_tuan === thu &&
-                        ca === (i.tiet_bat_dau <= 5
-                          ? "Sáng"
-                          : i.tiet_bat_dau <= 10
-                            ? "Chiều"
-                            : "Tối")
+                      (i) => i.thu_trong_tuan === thu && tietToCa(i.tiet_bat_dau) === ca
                     );
                     return (
-                      <td key={tIndex} className={`hocKy-cell ca-${ca.toLowerCase()}`}>
-                        {buoi.length > 0 ? (
+                      <td key={thu} className={`hocKy-cell ca-${ca.toLowerCase()}`}>
+                        {buoi.length ? (
                           buoi.map((b, j) => (
                             <div key={j} className="hocKy-item">
                               <strong>{b.ten_mon}</strong>
-                              <span>Phòng: {b.phong_hoc || "—"}</span>
-                              <div className="giangvien">GV: {b.ten_giang_vien || "—"}</div>
-                              <div className="tiet">Tiết: {b.tiet_bat_dau} – {b.tiet_ket_thuc}</div>
+                              <span>Phòng: {b.phong_hoc}</span>
+                              <div>GV: {b.ten_giang_vien}</div>
+                              <div>Tiết: {b.tiet_bat_dau}-{b.tiet_ket_thuc}</div>
                             </div>
-
                           ))
                         ) : (
                           <span className="no-class">—</span>
@@ -309,7 +304,6 @@ const exportPDF = () => {
           </table>
         </div>
       ) : (
-        // --- LỊCH THEO HỌC KỲ (giữ nguyên bảng cũ) ---
         <table className="schedule-table">
           <thead>
             <tr>
@@ -319,17 +313,13 @@ const exportPDF = () => {
               <th>Môn học</th>
               <th>Giảng viên</th>
               <th>Phòng</th>
-              <th>Lớp học phần</th>
+              <th>Lớp HP</th>
               <th>Trạng thái</th>
             </tr>
           </thead>
           <tbody>
             {filtered.length === 0 ? (
-              <tr>
-                <td colSpan="8" style={{ textAlign: "center" }}>
-                  ⚠️ Không có dữ liệu.
-                </td>
-              </tr>
+              <tr><td colSpan="8" className="no-data">⚠️ Không có dữ liệu.</td></tr>
             ) : (
               filtered.map((i, idx) => (
                 <tr key={idx}>

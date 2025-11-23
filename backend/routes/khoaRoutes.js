@@ -7,15 +7,14 @@ import {
   createKhoa,
   updateKhoa,
   deleteKhoa,
+  getLopTheoKhoa,
 } from "../controllers/khoaController.js";
 
 const router = express.Router();
 
-// ✅ Public cho người dùng có token
 router.get("/", verifyToken, getAllKhoa);
+router.get("/lop/:ma_khoa", verifyToken, getLopTheoKhoa);
 router.get("/:ma_khoa", verifyToken, getKhoaById);
-
-// ✅ CRUD chỉ Admin
 router.post("/", verifyToken, isAdmin, createKhoa);
 router.put("/:ma_khoa", verifyToken, isAdmin, updateKhoa);
 router.delete("/:ma_khoa", verifyToken, isAdmin, deleteKhoa);

@@ -40,7 +40,23 @@ export const getDiemRenLuyen = async (req, res) => {
     res.status(500).json({ error: "Lỗi khi lấy điểm rèn luyện" });
   }
 };
+export const getDiemRenLuyenBySinhVien = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const [rows] = await pool.query(`
+      SELECT drl.*, hk.ten_hoc_ky
+      FROM diem_ren_luyen drl
+      JOIN hoc_ky hk ON drl.ma_hoc_ky = hk.ma_hoc_ky
+      WHERE drl.ma_sinh_vien = ?
+      ORDER BY hk.ma_hoc_ky DESC
+    `, [id]);
 
+    res.json(rows);
+  } catch (error) {
+    console.error("❌ Lỗi khi lấy điểm rèn luyện:", error);
+    res.status(500).json({ error: "Không thể lấy điểm rèn luyện sinh viên" });
+  }
+};
 // ➕ Cập nhật hoặc thêm mới (Admin / Cố vấn)
 export const upsertDiemRenLuyen = async (req, res) => {
   try {

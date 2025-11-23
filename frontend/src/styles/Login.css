@@ -1,0 +1,168 @@
+/* ======= LOGIN PAGE (trắng + xanh hiện đại) ======= */
+.login-bg {
+  height: 100vh;
+  background-color: #e9e7f2;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-family: "Segoe UI", sans-serif;
+}
+
+.login-box {
+  width: 380px;
+  background-color: #fff;
+  border-radius: 10px;
+  padding: 35px 40px;
+  box-shadow: 0 3px 15px rgba(0, 0, 0, 0.15);
+  text-align: center;
+}
+
+.login-logo {
+  width: 90px;
+  height: 90px;
+  object-fit: contain;
+  margin-bottom: 15px;
+}
+
+.login-box h2 {
+  color: #222;
+  font-size: 22px;
+  font-weight: 600;
+  margin-bottom: 25px;
+}
+
+/* Dropdown */
+.login-select {
+  position: relative;
+  margin-bottom: 15px;
+}
+.login-select select {
+  width: 100%;
+  padding: 10px 36px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 15px;
+  color: #333;
+  appearance: none;
+  background-color: #fff;
+}
+.login-select select:focus {
+  border-color: #007bff;
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.15);
+}
+.login-select .icon-left {
+  position: absolute;
+  top: 50%;
+  left: 12px;
+  transform: translateY(-50%);
+  color: #888;
+}
+.login-select .icon-right {
+  position: absolute;
+  top: 50%;
+  right: 12px;
+  transform: translateY(-50%);
+  color: #888;
+  pointer-events: none;
+}
+
+/* Input */
+.login-input {
+  position: relative;
+  margin-bottom: 15px;
+}
+.login-input .icon-left {
+  position: absolute;
+  top: 50%;
+  left: 12px;
+  transform: translateY(-50%);
+  color: #888;
+}
+.login-input .icon-right {
+  position: absolute;
+  top: 50%;
+  right: 12px;
+  transform: translateY(-50%);
+  color: #888;
+  cursor: pointer;
+  transition: 0.2s;
+}
+.login-input .icon-right:hover {
+  color: #007bff;
+}
+.login-input input {
+  width: 80%;
+  padding: 10px 36px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 15px;
+  color: #333;
+}
+.login-input input:focus {
+  border-color: #007bff;
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.15);
+}
+
+/* Buttons */
+.login-btns {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 18px;
+}
+.login-btns .FaSignInAlt{
+  margin-right: 5px;
+}
+.btn-login,
+.btn-home {
+  flex: 1;
+  border: none;
+  border-radius: 6px;
+  padding: 10px 0;
+  font-size: 15px;
+  font-weight: 500;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  transition: 0.3s;
+  gap: 6px;
+}
+.btn-login {
+  background-color: #007bff;
+  color: #fff;
+  margin-right: 5px;
+}
+.btn-login:hover {
+  background-color: #005ec4;
+}
+.btn-home {
+  background-color: #dc3545;
+  color: #fff;
+  text-decoration: none;
+  margin-left: 5px;
+}
+.btn-home:hover {
+  background-color: #b02a37;
+}
+
+/* Forgot password */
+.login-forgot {
+  margin-top: 15px;
+}
+.login-forgot a {
+  text-decoration: none;
+  color: #007bff;
+  font-size: 14px;
+}
+.login-forgot a:hover {
+  text-decoration: underline;
+}
+
+/* Small tweak for mobile */
+@media (max-width: 480px) {
+  .login-box {
+    width: 90%;
+    padding: 25px;
+  }
+}

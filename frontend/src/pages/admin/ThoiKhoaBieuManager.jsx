@@ -12,7 +12,6 @@ const ThoiKhoaBieuManager = () => {
   const [expanded, setExpanded] = useState(null);
   const [buoiHocList, setBuoiHocList] = useState([]);
   const [loading, setLoading] = useState(false);
-  const token = localStorage.getItem("token");
 
   const [form, setForm] = useState({
     ma_lop_hp: "",
@@ -25,39 +24,38 @@ const ThoiKhoaBieuManager = () => {
     tuan_ket_thuc: "",
   });
 
-  // 🔹 Lấy danh sách lớp học phần & thời khóa biểu
+  // 📘 Lấy danh sách TKB và lớp học phần
   const fetchData = async () => {
     try {
       setLoading(true);
       const [tkbRes, lopRes] = await Promise.all([
         axios.get(`${API_URL}/api/thoi-khoa-bieu`, {
-          headers: { Authorization: `Bearer ${token}` },
+          withCredentials: true,
           params: { keyword },
         }),
-        axios.get(`${API_URL}/api/lophocphan`, {
-          headers: { Authorization: `Bearer ${token}` },
-        }),
+        axios.get(`${API_URL}/api/lophocphan`, { withCredentials: true }),
       ]);
-      setTkbs(tkbRes.data.data || []);
+      setTkbs(tkbRes.data.data || tkbRes.data || []);
       setLopList(lopRes.data.data || lopRes.data || []);
     } catch (err) {
-      console.error(err);
-      alert("❌ Lỗi khi tải dữ liệu thời khóa biểu!");
+      console.error("❌ Lỗi khi tải dữ liệu TKB:", err);
+      alert("Không thể tải dữ liệu thời khóa biểu!");
     } finally {
       setLoading(false);
     }
   };
 
-  // 🔹 Lấy buổi học theo lớp HP
+  // 📅 Lấy danh sách buổi học theo mã lớp HP
   const fetchBuoiHoc = async (ma_lop_hp) => {
     try {
       const res = await axios.get(`${API_URL}/api/buoihoc/${ma_lop_hp}`, {
-        headers: { Authorization: `Bearer ${token}` },
+        withCredentials: true,
       });
       setBuoiHocList(res.data.data || []);
       setExpanded(ma_lop_hp);
-    } catch {
-      alert("❌ Lỗi khi tải buổi học!");
+    } catch (err) {
+      console.error("❌ Lỗi khi tải buổi học:", err);
+      alert("Không thể tải danh sách buổi học!");
     }
   };
 
@@ -74,80 +72,87 @@ const ThoiKhoaBieuManager = () => {
     }
   };
 
-  // ➕ Thêm hoặc ✏️ Cập nhật
+  // ➕ Thêm hoặc ✏️ Cập nhật TKB
   const handleSubmit = async (e) => {
     e.preventDefault();
-    try {
-      if (!form.ma_lop_hp || !form.thu_trong_tuan || !form.tiet_bat_dau || !form.tiet_ket_thuc)
-        return alert("Vui lòng điền đủ thông tin!");
+    const { ma_lop_hp, thu_trong_tuan, tiet_bat_dau, tiet_ket_thuc } = form;
+    if (!ma_lop_hp || !thu_trong_tuan || !tiet_bat_dau || !tiet_ket_thuc)
+      return alert("⚠️ Vui lòng nhập đầy đủ thông tin bắt buộc!");
 
+    try {
       if (editing) {
         await axios.put(`${API_URL}/api/thoi-khoa-bieu/${editing}`, form, {
-          headers: { Authorization: `Bearer ${token}` },
+          withCredentials: true,
         });
         alert("✅ Cập nhật thời khóa biểu thành công!");
       } else {
         await axios.post(`${API_URL}/api/thoi-khoa-bieu`, form, {
-          headers: { Authorization: `Bearer ${token}` },
+          withCredentials: true,
         });
-        alert("✅ Thêm thời khóa biểu và sinh buổi học thành công!");
+        alert("✅ Thêm mới thời khóa biểu và tự động tạo buổi học!");
       }
 
-      setForm({
-        ma_lop_hp: "",
-        thu_trong_tuan: "",
-        tiet_bat_dau: "",
-        tiet_ket_thuc: "",
-        phong_hoc: "",
-        trang_thai: "hoc",
-        tuan_bat_dau: "",
-        tuan_ket_thuc: "",
-      });
-      setEditing(null);
+      resetForm();
       fetchData();
     } catch (err) {
-      console.error(err);
-      alert(err.response?.data?.error || "❌ Lỗi khi lưu thời khóa biểu!");
+      console.error("❌ Lỗi khi lưu:", err);
+      alert(err.response?.data?.error || "Không thể lưu thời khóa biểu!");
     }
   };
 
-  // 🗑️ Xóa TKB
+  const resetForm = () => {
+    setForm({
+      ma_lop_hp: "",
+      thu_trong_tuan: "",
+      tiet_bat_dau: "",
+      tiet_ket_thuc: "",
+      phong_hoc: "",
+      trang_thai: "hoc",
+      tuan_bat_dau: "",
+      tuan_ket_thuc: "",
+    });
+    setEditing(null);
+  };
+
+  // 🗑️ Xóa thời khóa biểu
   const handleDelete = async (id_tkb) => {
     if (!window.confirm("Bạn có chắc muốn xóa thời khóa biểu này không?")) return;
     try {
       await axios.delete(`${API_URL}/api/thoi-khoa-bieu/${id_tkb}`, {
-        headers: { Authorization: `Bearer ${token}` },
+        withCredentials: true,
       });
-      alert("🗑️ Đã xóa thời khóa biểu và buổi học!");
+      alert("🗑️ Đã xóa thời khóa biểu và buổi học liên quan!");
       fetchData();
     } catch (err) {
-      console.error(err);
-      alert("❌ Lỗi khi xóa thời khóa biểu!");
+      console.error("❌ Lỗi khi xóa:", err);
+      alert("Không thể xóa thời khóa biểu!");
     }
   };
 
   const filtered = tkbs.filter((t) =>
-    [t.ten_mon, t.ma_lop_hp, t.phong_hoc, t.ten_giang_vien]
+    [t.ten_mon, t.ma_lop_hp, t.ten_giang_vien, t.phong_hoc]
       .some((f) => f?.toLowerCase().includes(keyword.toLowerCase()))
   );
 
   return (
     <div className="admin-dashboard">
-      <h1>📅 Quản lý thời khóa biểu</h1>
+      <h1>📅 Quản lý Thời khóa biểu</h1>
 
-      {/* 🔍 Tìm kiếm */}
+      {/* 🔍 Bộ lọc */}
       <div className="filter-bar">
         <input
           type="text"
-          placeholder="Tìm môn học, giảng viên, phòng..."
+          placeholder="Tìm môn học, giảng viên, phòng học..."
           value={keyword}
           onChange={(e) => setKeyword(e.target.value)}
         />
+        <button onClick={fetchData}>🔄 Làm mới</button>
       </div>
 
-      {/* 🧩 Form thêm / sửa */}
+      {/* 🧾 Form thêm/sửa */}
       <form className="create-form" onSubmit={handleSubmit}>
-        <h3>{editing ? "✏️ Sửa thời khóa biểu" : "➕ Thêm thời khóa biểu mới"}</h3>
+        <h3>{editing ? "✏️ Sửa thời khóa biểu" : "➕ Thêm thời khóa biểu"}</h3>
+
         <select
           value={form.ma_lop_hp}
           onChange={(e) => setForm({ ...form, ma_lop_hp: e.target.value })}
@@ -162,7 +167,7 @@ const ThoiKhoaBieuManager = () => {
 
         <input
           type="number"
-          placeholder="Thứ trong tuần (2-8)"
+          placeholder="Thứ (2–8)"
           value={form.thu_trong_tuan}
           onChange={(e) => setForm({ ...form, thu_trong_tuan: e.target.value })}
         />
@@ -196,6 +201,7 @@ const ThoiKhoaBieuManager = () => {
           value={form.tuan_ket_thuc}
           onChange={(e) => setForm({ ...form, tuan_ket_thuc: e.target.value })}
         />
+
         <select
           value={form.trang_thai}
           onChange={(e) => setForm({ ...form, trang_thai: e.target.value })}
@@ -204,33 +210,16 @@ const ThoiKhoaBieuManager = () => {
           <option value="hoanthanh">Hoàn thành</option>
         </select>
 
-        <button type="submit">{editing ? "💾 Lưu" : "Thêm"}</button>
-        {editing && (
-          <button
-            type="button"
-            onClick={() => {
-              setEditing(null);
-              setForm({
-                ma_lop_hp: "",
-                thu_trong_tuan: "",
-                tiet_bat_dau: "",
-                tiet_ket_thuc: "",
-                phong_hoc: "",
-                trang_thai: "hoc",
-                tuan_bat_dau: "",
-                tuan_ket_thuc: "",
-              });
-            }}
-          >
-            Hủy
-          </button>
-        )}
+        <div style={{ display: "flex", gap: "10px", marginTop: "10px" }}>
+          <button type="submit">{editing ? "💾 Lưu" : "Thêm"}</button>
+          {editing && <button onClick={resetForm}>Hủy</button>}
+        </div>
       </form>
 
-      {/* 📋 Bảng TKB */}
+      {/* 📋 Bảng danh sách */}
       <div className="table-container">
         {loading ? (
-          <p>Đang tải...</p>
+          <p>Đang tải dữ liệu...</p>
         ) : (
           <table className="data-table">
             <thead>
@@ -260,7 +249,11 @@ const ThoiKhoaBieuManager = () => {
                       <td>{t.thu_trong_tuan}</td>
                       <td>{t.tiet_bat_dau}-{t.tiet_ket_thuc}</td>
                       <td>{t.phong_hoc}</td>
-                      <td>{t.trang_thai}</td>
+                      <td>
+                        {t.trang_thai === "hoc"
+                          ? "📘 Đang học"
+                          : "✅ Hoàn thành"}
+                      </td>
                       <td>
                         <button onClick={() => setEditing(t.id_tkb)}>✏️</button>
                         <button onClick={() => handleDelete(t.id_tkb)}>🗑️</button>
